@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Xianrui Cao" />
+  <meta name="author" content="Elvis Casco" />
+  <meta name="author" content="Cherryl Chico" />
+  <title>Latent Pathways and Post-Disruption Reorganization in Mexican Cartel Networks</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Latent Pathways and Post-Disruption Reorganization in
+Mexican Cartel Networks</h1>
+<p class="subtitle">Project Proposal — Networks I: Concepts and
+Algorithms</p>
+<p class="author">Xianrui Cao</p>
+<p class="author">Elvis Casco</p>
+<p class="author">Cherryl Chico</p>
+</header>
+<h2 id="project-configuration">Project Configuration</h2>
+<p>Kingpin strategies assume that removing central cartel actors
+fragments criminal organizations. However, some recent cases in Mexico
+say otherwise: removals triggered violence spikes and reconfiguration,
+not collapse (Calderón et al., 2015; Duijn et al., 2014). We want to
+test if cartel networks contain <em>latent relational pathways</em> —
+shared enemies, brokerage alternatives, overlapping neighborhoods — that
+activate when central actors are removed. The question is not only
+whether disruption fragments a network, but whether pre-existing latent
+structure conditions how it reorganizes.</p>
+<p>Using BACRIM2020 dataset(Prieto-Curiel &amp; Campedelli, 2023)
+containing 150 Mexican criminal factions with weighted alliance and
+rivalry ties, we want to model cartel relations as a signed network and
+test if pre-existing latent relational pathways condition the likely
+form of post-disruption reorganization after the removal of structurally
+central actors.</p>
+<p>This analysis could be relevant in the context of understanding how
+criminal networks adapt to targeted interventions. If
+“enemy-of-my-enemy” dynamics generate new coalitions after kingpin
+removals, understanding latent structure before intervention enables
+smarter targeting.</p>
+<p>Two real-world anchors motivate the design: the post-2017 Sinaloa
+fragmentation after El Chapo’s extradition, and the recent death of “El
+Mencho” (CJNG), whose node is the most connected in the dataset: 28
+alliances and 29 rivalries. This is the strongest test for whether
+latent pathways predict reconfiguration.</p>
+<h2 id="planification-and-methodology">Planification and
+Methodology</h2>
+<p>The analysis has six steps:</p>
+<ol type="1">
+<li><p>Signed Network Construction: using the dataset, we can build
+alliance (+1) and rivalry (−1) layers on the same 150 nodes.</p></li>
+<li><p>Central Actor Identification: the next step is to estimate
+degree, betweenness, and eigenvector centrality plus structural-hole
+measures. We could focus on structures whose removal exposes dormant
+coordination alternatives (Morselli, 2009; Bright et al.,
+2015).</p></li>
+<li><p>Latent Pathway Inference (Pre-Disruption): for each non-adjacent
+dyad, we can compute a composite latent score from Jaccard similarity
+and Adamic-Adar overlap in alliance/rivalry neighborhoods (Adamic &amp;
+Adar, 2003; Liben-Nowell &amp; Kleinberg, 2007), community
+co-membership, and short indirect path length.</p></li>
+<li><p>Node Removal Simulation: We plan to simulate the removal of
+central nodes (e.g., CJNG, Sinaloa) and measure fragmentation, component
+size, bridge loss, and signed triad balance (Albert et al., 2000). Using
+this simulation we can estimate effects of targeted
+intervention.</p></li>
+<li><p>Counterfactual Reconstruction: the plan is to add new ties
+<em>only</em> where pre-removal latent scores are high (Leskovec et al.,
+2010). This approach assesses whether recombination reduces
+fragmentation, restores brokerage, or generates new coalitional
+blocs.</p></li>
+<li><p>Validation via Link Prediction: we can withhold observed ties,
+recalculate latent scores from the remaining structure, check whether
+withheld ties rank higher than unrelated dyads. This step establishes
+the latent score as a credible proxy for unobserved relational
+potential.</p></li>
+</ol>
+<h2 id="challenges-and-how-to-overcome-them">Challenges and How to
+Overcome Them</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Challenge</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cross-sectional data: cannot observe actual post-disruption
+dynamics.</td>
+<td>Frame results as <em>counterfactual plausibility</em>, not causal
+claims. Supplement with qualitative comparison to documented
+Sinaloa/CJNG reconfiguration.</td>
+</tr>
+<tr>
+<td>Partial observability: latent edges are unobserved by
+definition.</td>
+<td>The link-prediction validation (Step 6) demonstrates the score
+recovers artificially hidden edges, establishing it as a credible
+proxy.</td>
+</tr>
+<tr>
+<td>Signed network complexity: standard metrics assume unsigned
+graphs.</td>
+<td>Compute alliance- and rivalry-specific versions of each metric
+separately; use signed triad balance (Cartwright &amp; Harary, 1956) to
+validate structural coherence.</td>
+</tr>
+<tr>
+<td>Small N (~150 nodes): limited statistical power.</td>
+<td>Use rank-based metrics (AUC) robust at smaller scales and repeated
+random splits.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="key-references">Key References</h2>
+<ul>
+<li>Adamic, L.A. &amp; Adar, E. (2003). Friends and neighbors on the
+Web. <em>Social Networks</em>, 25(3), 211–230. <a
+href="https://doi.org/10.1016/S0378-8733(03)00009-1">doi:10.1016/S0378-8733(03)00009-1</a></li>
+<li>Albert, R., Jeong, H. &amp; Barabási, A.-L. (2000). Error and attack
+tolerance of complex networks. <em>Nature</em>, 406, 378–382. <a
+href="https://doi.org/10.1038/35019019">doi:10.1038/35019019</a></li>
+<li>Bright, D., Greenhill, C., Reynolds, M., Ritter, A. &amp; Morselli,
+C. (2015). The use of actor-level attributes and centrality measures to
+identify key actors. <em>Journal of Contemporary Criminal Justice</em>,
+31(3), 262–280. <a
+href="https://doi.org/10.1177/1043986214553377">doi:10.1177/1043986214553377</a></li>
+<li>Calderón, G., Robles, G., Díaz-Cayeros, A. &amp; Magaloni, B.
+(2015). The beheading of criminal organizations and the dynamics of
+violence in Mexico. <em>Journal of Conflict Resolution</em>, 59(8),
+1455–1485. <a
+href="https://doi.org/10.1177/0022002715587053">doi:10.1177/0022002715587053</a></li>
+<li>Cartwright, D. &amp; Harary, F. (1956). Structural balance: A
+generalization of Heider’s theory. <em>Psychological Review</em>, 63(5),
+277–293. <a
+href="https://doi.org/10.1037/h0046049">doi:10.1037/h0046049</a></li>
+<li>Duijn, P.A.C., Kashirin, V. &amp; Sloot, P.M.A. (2014). The relative
+ineffectiveness of criminal network disruption. <em>Scientific
+Reports</em>, 4, 4238. <a
+href="https://doi.org/10.1038/srep04238">doi:10.1038/srep04238</a></li>
+<li>Leskovec, J., Huttenlocher, D. &amp; Kleinberg, J. (2010).
+Predicting positive and negative links in online social networks.
+<em>Proceedings of WWW 2010</em>, 641–650. <a
+href="https://doi.org/10.1145/1772690.1772756">doi:10.1145/1772690.1772756</a></li>
+<li>Liben-Nowell, D. &amp; Kleinberg, J. (2007). The link-prediction
+problem for social networks. <em>JASIST</em>, 58(7), 1019–1031. <a
+href="https://doi.org/10.1002/asi.20591">doi:10.1002/asi.20591</a></li>
+<li>Lü, L. &amp; Zhou, T. (2011). Link prediction in complex networks: A
+survey. <em>Physica A</em>, 390(6), 1150–1170. <a
+href="https://doi.org/10.1016/j.physa.2010.11.027">doi:10.1016/j.physa.2010.11.027</a></li>
+<li>Morselli, C. (2009). <em>Inside Criminal Networks</em>. Springer. <a
+href="https://doi.org/10.1007/978-0-387-09526-4">doi:10.1007/978-0-387-09526-4</a></li>
+<li>Prieto-Curiel, R. &amp; Campedelli, G.M. (2023). Mexican cartels
+form a network of alliances and rivalries. <em>Royal Society Open
+Science</em>, 10, 221507. <a
+href="https://doi.org/10.1098/rsos.221507">doi:10.1098/rsos.221507</a></li>
+<li>Wandelt, S., Sun, X., Feng, D., Zanin, M. &amp; Havlin, S. (2018). A
+comparative analysis of approaches to network-dismantling.
+<em>Scientific Reports</em>, 8, 13513. <a
+href="https://doi.org/10.1038/s41598-018-31902-8">doi:10.1038/s41598-018-31902-8</a></li>
+</ul>
+</body>
+</html>

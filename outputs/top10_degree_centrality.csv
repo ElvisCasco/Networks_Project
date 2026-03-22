@@ -1,0 +1,11 @@
+Node,ShortName,Type,Specialty,Degree_Centrality
+N10025,CJNG,National Cartel,Drug Trafficking,0.3111
+N10013,Sinaloa,National Cartel,Drug Trafficking,0.2333
+N10091,Chapitos,Faction,Drug Trafficking,0.0667
+N10081,UTepito,Local,Drug Retail,0.0667
+N10058,Gente Nueva,Armed Wing,Drug Trafficking,0.0556
+N10076,NFMichoacana,Regional Cartel,Drug Trafficking,0.0556
+N10127,Talibanes,Local,Drug Trafficking,0.0444
+N10019,Noreste,Regional Cartel,Drug Trafficking,0.0444
+N10001,ACME,Cell,Drug Retail,0.0333
+N10104,Lobos,Cell,Undocumented,0.0333

@@ -1,0 +1,151 @@
+Node,Group,State,ShortName,Type,Primary_Specialty,Activities,Primary_Drugs,Source
+N10001,ACME,Ciudad de México,ACME,Cell,Drug Retail,Drug Retail;Extortion,,CRS_R41576
+N10002,Banda de El Perro,Ciudad de México,Banda de Perro,Cell,Undocumented,,,
+N10003,Caballeros Templarios,Colima,Caballeros Templarios,Regional Cartel,Drug Trafficking,Drug Trafficking;Extortion;Illegal Mining;Agricultural Extortion,Methamphetamine,CRS_R41576;InSight_Crime
+N10004,Cártel de Caborca,Sonora,Caborca,Regional Cartel,Drug Trafficking,Drug Trafficking;Illegal Mining,Marijuana;Methamphetamine;Fentanyl,CRS_R41576;InSight_Crime
+N10005,Cártel de Juárez,Chihuahua,Juárez,National Cartel,Drug Trafficking,Drug Trafficking;Money Laundering,Cocaine;Heroin;Marijuana,DEA_NDTA;CRS_R41576
+N10006,Cártel de Los Alemanes,San Luis Potosí,Alemanes,Local,Undocumented,,,
+N10007,Cártel de Los Arellano Félix,Querétaro,Arellano Félix,Regional Cartel,Drug Trafficking,Drug Trafficking;Money Laundering,Cocaine;Marijuana;Methamphetamine;Heroin,DEA_NDTA;CRS_R41576
+N10008,Cártel de los Beltrán Leyva,Ciudad de México,Beltrán Leyva,Regional Cartel,Drug Trafficking,Drug Trafficking;Kidnapping;Extortion,Cocaine;Heroin;Methamphetamine,DEA_NDTA;CRS_R41576
+N10009,Cártel de Los Pantoja Parada,Oaxaca,Pantoja Parada,Cell,Undocumented,,,
+N10010,Cártel de Los Tequileros,Guerrero,Tequileros,Local,Drug Trafficking,Drug Trafficking;Extortion;Kidnapping,Heroin,CRS_R41576
+N10011,Cártel de Oaxaca,Yucatán,Oaxaca,Local,Undocumented,,,
+N10012,Cártel de Santa Rosa de Lima,Yucatán,Santa Rosa de Lima,Toll-Collector,Fuel Theft,Fuel Theft;Extortion,,CRS_R41576;InSight_Crime;DEA_NDTA
+N10013,Cártel de Sinaloa,Durango,Sinaloa,National Cartel,Drug Trafficking,Drug Trafficking;Money Laundering;Arms Trafficking,Fentanyl;Methamphetamine;Cocaine;Heroin;Marijuana,DEA_NDTA_2024;DEA_NDTA_2025;CRS_R41576
+N10014,Cártel de Telpacatepec,Michoacán,Telpacatepec,Local,Extortion,Extortion;Drug Trafficking,,InSight_Crime
+N10015,Cártel de Tláhuac,Ciudad de México,Tláhuac,Local,Drug Retail,Drug Retail;Extortion,,CRS_R41576
+N10016,Cártel del Abuelo,Michoacán,Abuelo,Local,Drug Trafficking,Drug Trafficking;Extortion,Methamphetamine,InSight_Crime
+N10017,Cártel del Golfo,Quintana Roo,Golfo,Regional Cartel,Drug Trafficking,Drug Trafficking;Extortion;Kidnapping;Human Smuggling,Cocaine;Methamphetamine;Marijuana,DEA_NDTA_2025;CRS_R41576
+N10018,Cártel del Golfo Nueva Era,Tamaulipas,Golfo Nueva Era,Regional Cartel,Drug Trafficking,Drug Trafficking;Extortion,,CRS_R41576
+N10019,Cártel del Noreste,Campeche,Noreste,Regional Cartel,Drug Trafficking,Drug Trafficking;Extortion;Kidnapping;Human Smuggling,Cocaine;Methamphetamine;Fentanyl,DEA_NDTA_2025;CRS_R41576
+N10020,Cártel del Poniente o La Laguna,Chihuahua,Poniente o Laguna,Local,Drug Trafficking,Drug Trafficking,,CRS_R41576
+N10021,Cártel del Siglo,Veracruz,Siglo,Cell,Undocumented,,,
+N10022,Cártel del Sur,Guerrero,Sur,Local,Drug Trafficking,Drug Trafficking;Extortion,,CRS_R41576
+N10023,Cártel en Nochistlán,Zacatecas,en Nochistlán,Cell,Undocumented,,,
+N10024,Cártel Independiente de Acapulco,Guerrero,Independiente de Acapulco,Local,Drug Trafficking,Drug Trafficking;Extortion,Heroin;Cocaine,InSight_Crime
+N10025,Cártel Jalisco Nueva Generación (CJNG),Jalisco,CJNG,National Cartel,Drug Trafficking,Drug Trafficking;Extortion;Fuel Theft;Human Smuggling;Illegal Mining;Money Laundering,Fentanyl;Methamphetamine;Cocaine,DEA_NDTA_2024;DEA_NDTA_2025;CRS_R41576
+N10026,Cártel Los Epitacio,Yucatán,Epitacio,Cell,Undocumented,,,
+N10027,Cártel Nueva Plaza,Guanajuato,Nueva Plaza,Local,Drug Trafficking,Drug Trafficking;Fuel Theft,Methamphetamine,InSight_Crime
+N10028,Cártel Pura Gente Nueva,Campeche,Pura Gente Nueva,Armed Wing,Drug Trafficking,Drug Trafficking;Enforcement,Marijuana;Methamphetamine,CRS_R41576
+N10029,Cártel San Luis Potosí Nueva Generación (CSLPNG),San Luis Potosí,San Luis Potosí Nueva Generación (CSLPNG),Local,Drug Trafficking,Drug Trafficking;Extortion,,CRS_R41576
+N10030,Cártel Tijuana Nueva Generación,Baja California,Tijuana Nueva Generación,Local,Drug Trafficking,Drug Trafficking,Cocaine;Methamphetamine,CRS_R41576
+N10031,Cártel Zicuirán Nueva Generación,Michoacán,Zicuirán Nueva Generación,Local,Drug Trafficking,Drug Trafficking;Extortion,,CRS_R41576
+N10032,Cárteles Unidos,Veracruz,Cárteles Unidos,Regional Cartel,Drug Trafficking,Drug Trafficking;Extortion;Illegal Mining,Methamphetamine,DEA_NDTA_2025;CRS_R41576
+N10033,"Célula liderada por Alfonso Arzate García, El Aquiles",Baja California,"Célula liderada por Alfonso Arzate García, Aquiles",Cell,Undocumented,,,
+N10034,Célula liderada por El Balín,Ciudad de México,Célula liderada por Balín,Cell,Undocumented,,,
+N10035,CJNG Comando la Mancha,Baja California,CJNG Comando la Mancha,Armed Wing,Drug Trafficking,Drug Trafficking;Enforcement,,CRS_R41576
+N10036,Comandante Coronavirus,Quintana Roo,Comandante Coronavirus,Cell,Undocumented,,,
+N10037,Durangos/Cazadores,Sonora,Durangos/Cazadores,Cell,Undocumented,,,
+N10038,Ejército Revolucionario del Pueblo Insurgente (ERPI),Guerrero,Ejército Revolucionario del Pueblo Insurgente (ERPI),Insurgent,Drug Trafficking,Drug Trafficking;Extortion,Marijuana;Heroin,CRS_R41576
+N10039,El Araña,Ciudad de México,Araña,Cell,Undocumented,,,
+N10040,El Cano,Ciudad de México,Cano,Cell,Undocumented,,,
+N10041,El Chepe,Ciudad de México,Chepe,Cell,Undocumented,,,
+N10042,El Espárragos,Ciudad de México,Espárragos,Cell,Undocumented,,,
+N10043,El H,Ciudad de México,H,Cell,Undocumented,,,
+N10044,El Jardinero,Nayarit,Jardinero,Cell,Undocumented,,,
+N10045,El Loco Téllez,Puebla,Loco Téllez,Cell,Undocumented,,,
+N10046,El Nopa,Ciudad de México,Nopa,Cell,Undocumented,,,
+N10047,El Patines,Ciudad de México,Patines,Cell,Undocumented,,,
+N10048,El Pechugas,Ciudad de México,Pechugas,Cell,Undocumented,,,
+N10049,El Richis,Ciudad de México,Richis,Cell,Undocumented,,,
+N10050,El Robert,Ciudad de México,Robert,Cell,Undocumented,,,
+N10051,El Señor de la V,Morelos,Señor de la V,Cell,Undocumented,,,
+N10052,El Señor de la Virgen,Michoacán,Señor de la Virgen,Cell,Undocumented,,,
+N10053,El Señorón,Morelos,Señorón,Cell,Undocumented,,,
+N10054,El Temerario,Morelos,Temerario,Cell,Undocumented,,,
+N10055,Familia La Cruz,Ciudad de México,Familia Cruz,Cell,Undocumented,,,
+N10056,"Francisco Javier Arvizo Márquez, El Jaguar",Chihuahua,"Francisco Javier Arvizo Márquez, Jaguar",Cell,Drug Trafficking,Drug Trafficking,,CRS_R41576
+N10057,Fuerza Anti-Unión Tepito,Ciudad de México,Fuerza Anti-Unión Tepito,Local,Drug Retail,Drug Retail;Extortion,,InSight_Crime
+N10058,Gente Nueva,Sinaloa,Gente Nueva,Armed Wing,Drug Trafficking,Drug Trafficking;Enforcement,Marijuana;Methamphetamine;Fentanyl,CRS_R41576;InSight_Crime
+N10059,Grupo de Narco Rap,Tamaulipas,Grupo de Narco Rap,Cell,Undocumented,,,
+N10060,Grupo Élite del CJNG,Guanajuato,Grupo Élite del CJNG,Armed Wing,Enforcement,Enforcement;Drug Trafficking,,CRS_R41576;InSight_Crime
+N10061,Grupo Sombra,Veracruz,Grupo Sombra,Local,Drug Trafficking,Drug Trafficking;Fuel Theft;Extortion,,InSight_Crime
+N10062,Güero Fresa,Ciudad de México,Güero Fresa,Cell,Undocumented,,,
+N10063,Guerreros Unidos,Guerrero,GuerrerosU,Regional Cartel,Drug Trafficking,Drug Trafficking;Kidnapping;Extortion,Heroin,CRS_R41576;InSight_Crime
+N10064,Juan Balta,Ciudad de México,Juan Balta,Cell,Undocumented,,,
+N10065,"Juan L. (El Moco), líder huachicolero",Tlaxcala,"Juan L. (Moco), líder huachicolero",Cell,Fuel Theft,Fuel Theft,,CRS_R41576
+N10066,La Anti-Unión o La Rosa Nueva,Ciudad de México,Anti-Unión o Rosa Nueva,Cell,Drug Retail,Drug Retail;Extortion,,InSight_Crime
+N10067,La banda de El Tigre,Baja California,banda de Tigre,Cell,Undocumented,,,
+N10068,La Banda del Bucanas,Veracruz,Banda del Bucanas,Cell,Undocumented,,,
+N10069,La Bandera,Guerrero,Bandera,Cell,Undocumented,,,
+N10070,La Barredora 24/7,Sonora,Barredora 24/7,Cell,Undocumented,,,
+N10071,La Emperatriz,Sinaloa,Emperatriz,Cell,Undocumented,,,
+N10072,La Gran Familia Mexicana,Puebla,Gran Familia Mexicana,Cell,Undocumented,,,
+N10073,La Guardia Guerrerense,Guerrero,Guardia Guerrerense,Local,Drug Trafficking,Drug Trafficking;Extortion,,CRS_R41576
+N10074,La Guera,Chihuahua,Guera,Cell,Undocumented,,,
+N10075,La Línea,Chihuahua,Línea,Armed Wing,Drug Trafficking,Drug Trafficking;Enforcement;Extortion,Cocaine;Heroin;Marijuana,CRS_R41576;InSight_Crime
+N10076,La Nueva Familia Michoacana,Ciudad de México,NFMichoacana,Regional Cartel,Drug Trafficking,Drug Trafficking;Extortion;Illegal Mining,Methamphetamine;Fentanyl,DEA_NDTA_2025;CRS_R41576
+N10077,"La Reina del Sur, Cecilia “V""",Puebla,"Reina del Sur, Cecilia “V""",Undocumented,Undocumented,,,
+N10078,La Ronda 88 / Fabian R88,Ciudad de México,Ronda 88 / Fabian R88,Cell,Undocumented,,,
+N10079,La Tripa,Morelos,Tripa,Cell,Undocumented,,,
+N10080,La Unión León,Guanajuato,Unión León,Local,Drug Trafficking,Drug Trafficking;Fuel Theft;Extortion,,InSight_Crime
+N10081,La Unión Tepito,Ciudad de México,UTepito,Local,Drug Retail,Drug Retail;Extortion;Kidnapping;Piracy;Prostitution,,CRS_R41576;InSight_Crime
+N10082,Lenin Canchola,Ciudad de México,Lenin Canchola,Cell,Undocumented,,,
+N10083,Los Ántrax,Veracruz,Ántrax,Armed Wing,Enforcement,Enforcement;Drug Trafficking,,CRS_R41576;InSight_Crime
+N10084,Los Ardillos,Guerrero,Ardillos,Local,Drug Trafficking,Drug Trafficking;Extortion;Illegal Mining,Heroin,CRS_R41576;InSight_Crime
+N10085,Los Artistas Asesinos o Doble A,Chihuahua,Artistas Asesinos o Doble A,Local,Drug Retail,Drug Retail;Extortion,,CRS_R41576
+N10086,Los Benjas,Ciudad de México,Benjas,Cell,Undocumented,,,
+N10087,Los Blancos de Troya,Michoacán,Blancos de Troya,Cell,Undocumented,,,
+N10088,Los Cabos,Baja California,Cabos,Cell,Undocumented,,,
+N10089,Los Cabrera,Chihuahua,Cabrera,Local,Drug Trafficking,Drug Trafficking,,CRS_R41576
+N10090,Los Changos,Ciudad de México,Changos,Cell,Undocumented,,,
+N10091,Los Chapitos,Baja California,Chapitos,Faction,Drug Trafficking,Drug Trafficking;Money Laundering,Fentanyl;Methamphetamine,DEA_NDTA_2024;CRS_R41576;InSight_Crime
+N10092,Los Chilas,Ciudad de México,Chilas,Cell,Undocumented,,,
+N10093,Los Chimales,Sinaloa,Chimales,Cell,Undocumented,,,
+N10094,Los Chukys,Oaxaca,Chukys,Cell,Undocumented,,,
+N10095,Los Colombianos,Morelos,Colombianos,Cell,Undocumented,,,
+N10096,Los Cuinis,Jalisco,Cuinis,Financial Wing,Money Laundering,Money Laundering;Drug Trafficking,,CRS_R41576;InSight_Crime
+N10097,Los Dámasos/Fuerzas especiales Dámaso,Sinaloa,Dámasos,Faction,Drug Trafficking,Drug Trafficking,Methamphetamine;Fentanyl,CRS_R41576
+N10098,Los Durangos,Guanajuato,Durangos,Cell,Undocumented,,,
+N10099,Los Erres,Baja California,Erres,Cell,Undocumented,,,
+N10100,Los Estúpidos,Ciudad de México,Estúpidos,Cell,Undocumented,,,
+N10101,Los Guerreros,Jalisco,Guerreros,Cell,Undocumented,,,
+N10102,Los Jaguares,Sinaloa,Jaguares,Cell,Undocumented,,,
+N10103,Los Linos,Morelos,Linos,Cell,Undocumented,,,
+N10104,Los Lobos,Sinaloa,Lobos,Cell,Undocumented,,,
+N10105,Los Maceros,Ciudad de México,Maceros,Cell,Undocumented,,,
+N10106,Los Marcopolos,Ciudad de México,Marcopolos,Cell,Undocumented,,,
+N10107,Los Mayas,Ciudad de México,Mayas,Cell,Undocumented,,,
+N10108,Los Metros,Tamaulipas,Metros,Faction,Drug Trafficking,Drug Trafficking;Extortion,,CRS_R41576;InSight_Crime
+N10109,Los Mexicles,Chihuahua,Mexicles,Local,Drug Retail,Drug Retail;Extortion,,CRS_R41576
+N10110,Los Mojarras,Ciudad de México,Mojarras,Cell,Undocumented,,,
+N10111,Los Molina,Ciudad de México,Molina,Cell,Undocumented,,,
+N10112,Los Negros,Ciudad de México,Negros,Cell,Undocumented,,,
+N10113,Los Ninis,Sinaloa,Ninis,Armed Wing,Enforcement,Enforcement;Drug Trafficking,Fentanyl;Methamphetamine,CRS_R41576;InSight_Crime
+N10114,Los Páez,Sonora,Páez,Cell,Undocumented,,,
+N10115,Los Papayos,Ciudad de México,Papayos,Cell,Undocumented,,,
+N10116,Los Pelones,Quintana Roo,Pelones,Armed Wing,Enforcement,Enforcement;Drug Trafficking,,CRS_R41576
+N10117,Los Piña,Veracruz,Piña,Cell,Undocumented,,,
+N10118,Los R4,Baja California,R4,Cell,Undocumented,,,
+N10119,Los Rodolfos,Ciudad de México,Rodolfos,Cell,Undocumented,,,
+N10120,Los Rojos,Ciudad de México,Rojos,Local,Drug Trafficking,Drug Trafficking;Extortion,Heroin,CRS_R41576;InSight_Crime
+N10121,Los Rudos,Ciudad de México,Rudos,Cell,Undocumented,,,
+N10122,Los Rusos,Sinaloa,Rusos,Cell,Undocumented,,,
+N10123,Los Salazares,Chihuahua,Salazares,Local,Drug Trafficking,Drug Trafficking,Marijuana;Methamphetamine,CRS_R41576
+N10124,Los Salgueiro,Chihuahua,Salgueiro,Cell,Undocumented,,,
+N10125,Los Siete Demonios,Sonora,Siete Demonios,Cell,Undocumented,,,
+N10126,Los Sinaloas,Ciudad de México,Sinaloas,Cell,Undocumented,,,
+N10127,Los Talibanes,San Luis Potosí,Talibanes,Local,Drug Trafficking,Drug Trafficking;Extortion,,CRS_R41576
+N10128,Los Tanzanios,Ciudad de México,Tanzanios,Cell,Undocumented,,,
+N10129,Los Tequileros,Guerrero,Tequileros,Local,Drug Trafficking,Drug Trafficking;Extortion;Kidnapping,Heroin,CRS_R41576
+N10130,Los Tlacos (Cartel de la Sierra),Guerrero,Tlacos (Cartel de la Sierra),Local,Drug Trafficking,Drug Trafficking,Heroin;Marijuana,CRS_R41576
+N10131,Los Tlahuicas,Morelos,Tlahuicas,Cell,Undocumented,,,
+N10132,Los Treviño,Nuevo León,Treviño,Faction,Drug Trafficking,Drug Trafficking;Extortion,,CRS_R41576
+N10133,Los Viagras,Michoacán,Viagras,Local,Drug Trafficking,Drug Trafficking;Extortion;Illegal Mining,Methamphetamine,CRS_R41576;InSight_Crime
+N10134,Los Zetas,Yucatán,Zetas,National Cartel,Drug Trafficking,Drug Trafficking;Extortion;Kidnapping;Human Smuggling;Fuel Theft;Money Laundering,Cocaine;Methamphetamine;Marijuana,DEA_NDTA;CRS_R41576;InSight_Crime
+N10135,Maestrin,Ciudad de México,Maestrin,Cell,Undocumented,,,
+N10136,Mando Sur Gente Nueva,Veracruz,Mando Sur Gente Nueva,Armed Wing,Drug Trafficking,Drug Trafficking;Enforcement,,CRS_R41576
+N10137,Mazatlecos,Sinaloa,Mazatlecos,Local,Drug Trafficking,Drug Trafficking,Marijuana,CRS_R41576
+N10138,MZ,Zacatecas,MZ,Faction,Drug Trafficking,Drug Trafficking;Money Laundering,Fentanyl;Methamphetamine;Cocaine;Heroin,DEA_NDTA_2024;CRS_R41576;InSight_Crime
+N10139,Nuevo Cártel de Juárez,Chihuahua,Nuevo Juárez,Local,Drug Trafficking,Drug Trafficking,Cocaine;Heroin,CRS_R41576
+N10140,Paco Pacas,Ciudad de México,Paco Pacas,Cell,Undocumented,,,
+N10141,Pedro Aviles Salazar,Guerrero,Pedro Aviles Salazar,Cell,Undocumented,,,
+N10142,Robles,Ciudad de México,Robles,Cell,Undocumented,,,
+N10143,Sangre Nueva Zeta,Campeche,Sangre Nueva Zeta,Local,Drug Trafficking,Drug Trafficking;Extortion,,CRS_R41576
+N10144,Sindicato Libertad,Ciudad de México,Sindicato Libertad,Cell,Undocumented,,,
+N10145,Tercera Acción Destructiva (3AD),Ciudad de México,3AD,Cell,Undocumented,,,
+N10146,Tláhuac-Barbas,Ciudad de México,Tláhuac-Barbas,Cell,Undocumented,,,
+N10147,Tropa del Infierno,Tamaulipas,Tropa del Infierno,Armed Wing,Enforcement,Enforcement;Drug Trafficking;Kidnapping,,CRS_R41576;InSight_Crime
+N10148,U o la UVA,Ciudad de México,U o la UVA,Cell,Undocumented,,,
+N10149,Unión de Pueblos y Organizaciones del Estado de Guerrero (UPOEG) ,Guerrero,UPOEG,Undocumented,Undocumented,,,
+N10150,Zetas Vieja Escuela,Tamaulipas,Zetas VE,Local,Drug Trafficking,Drug Trafficking;Extortion,,CRS_R41576

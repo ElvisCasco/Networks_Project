@@ -1,0 +1,11 @@
+Node,ShortName,Type,Specialty,Betweenness_Centrality
+N10025,CJNG,National Cartel,Drug Trafficking,0.2684
+N10127,Talibanes,Local,Drug Trafficking,0.1041
+N10013,Sinaloa,National Cartel,Drug Trafficking,0.068
+N10016,Abuelo,Local,Drug Trafficking,0.0644
+N10081,UTepito,Local,Drug Retail,0.0572
+N10133,Viagras,Local,Drug Trafficking,0.0549
+N10076,NFMichoacana,Regional Cartel,Drug Trafficking,0.0464
+N10019,Noreste,Regional Cartel,Drug Trafficking,0.0462
+N10091,Chapitos,Faction,Drug Trafficking,0.0225
+N10150,Zetas VE,Local,Drug Trafficking,0.0176

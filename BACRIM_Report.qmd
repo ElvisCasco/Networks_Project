@@ -1,0 +1,1684 @@
+---
+title: "Networks Project Report: BACRIM 2020 Mexican Cartel Network"
+subtitle: "Prieto-Curiel & Campedelli (2023)"
+author: "Networks I: Concepts and Algorithms"
+date: "Winter, 2026"
+format:
+  html:
+    toc: true
+    toc-depth: 5
+    toc-location: left
+    code-fold: true
+    code-tools: true
+    theme: cosmo
+    fig-width: 10
+    fig-height: 8
+jupyter: python313
+execute:
+  warning: false
+  message: false
+---
+
+# 1. Introduction
+
+## 1.1 Context and Motivation
+
+Organized crime operates as a **relational system** where alliances and rivalries shape power, coordination, and conflict among criminal organizations. In Mexico, drug cartels form complex webs of cooperation and competition that determine territorial control, operational capacity, and the dynamics of violence. Between 2012 and 2021, Mexico recorded over 290,000 homicides and over 175,000 missing persons — figures that correlate closely with cartel fragmentation and inter-organizational conflict (INEGI, 2022).
+
+The **BACRIM 2020** dataset (Prieto-Curiel & Campedelli, 2023) represents a **signed network** capturing both positive ties (alliances) and negative ties (rivalries) among 150 Mexican criminal organizations as of 2020. Unlike many criminal network datasets that focus on individual actors, BACRIM operates at the **organizational level**, treating each cartel, cell, or local group as a node. This allows us to study the macro-structure of criminal cooperation — who allies with whom, who competes against whom, and which organizations serve as bridges or brokers.
+
+**Network science** provides a natural framework for this analysis. Rather than treating each cartel as an isolated actor, we model the full relational structure as a graph $G = (V, E)$, where vertices $V$ represent organizations and edges $E$ represent observed alliances or rivalries. This formalism captures dependencies, brokerage, clustering, and potential future link formation — dimensions that are invisible to traditional organizational charts or case-by-case intelligence analysis (Sparrow, 1991).
+
+We enrich the network data with **organizational specialties** — the primary criminal activities (drug trafficking, extortion, fuel theft, kidnapping) and drug portfolios (fentanyl, methamphetamine, cocaine, heroin) of each cartel — drawn from DEA National Drug Threat Assessments (2024, 2025), Congressional Research Service reports, and InSight Crime profiles. This allows us to test whether alliance formation is driven by **functional complementarity** (cartels with different specialties allying to form integrated supply chains) or **homophily** (cartels with similar activities preferring to cooperate).
+
+Remarkably, events between 2024 and 2026 — including the arrest of Ismael "El Mayo" Zambada, the killing of CJNG leader "El Mencho," and the US designation of both cartels as terrorist organizations — dramatically validate the structural insights derived from this 2020 snapshot. We discuss these connections in [Section 4.5](#connection-to-recent-events-20242026).
+
+## 1.2 Research Questions
+
+- **RQ1:** What are the key structural properties of the cartel alliance network, and how do organizational characteristics (type, specialty, drug portfolio) relate to network position?
+- **RQ2:** Is the observed alliance network compatible with a random process, or does it show structured organization?
+- **RQ3:** Which currently disconnected cartel pairs are most likely to form future alliances based on network topology?
+- **RQ4:** How does the network structure change when a critical hub node is removed?
+
+## 1.3 Core Analytical Objectives
+
+Beyond the descriptive and comparative analyses above, this report focuses on two main investigative objectives:
+
+**1. Finding Hidden Connections in the Network (Link Prediction)**
+
+Not all relationships between criminal organizations are directly observable. Two cartels that are not currently allied may nonetheless share many mutual allies, operate in adjacent territories, or occupy structurally similar positions in the network. **Link prediction** algorithms exploit these patterns to identify the most plausible *hidden* or *future* connections — pairs of organizations that do not yet have a direct alliance but are topologically primed to form one.
+
+We use two complementary approaches: the **Jaccard coefficient**, which measures the fraction of shared neighbors between two nodes, and the **Adamic-Adar index**, which weights shared neighbors by their exclusivity (rare shared connections are more informative than common ones). Together, these methods reveal the "invisible wiring" of the cartel ecosystem — alliances that likely exist but are unrecorded, or that are likely to emerge in the near future.
+
+**2. Network Resilience: What Happens When a Critical Node Is Removed?**
+
+Criminal networks, like many real-world networks, are **heterogeneous** — a small number of highly connected hubs hold together a large periphery of smaller organizations. This raises a critical strategic question: *what happens if a hub is eliminated?* Does the network fragment into isolated clusters, or does it remain largely intact?
+
+We simulate the **targeted removal** of the most central node (CJNG / El Mencho) and measure the resulting structural disruption: changes in connectivity, fragmentation into components, increased path lengths, and loss of cohesion. We extend this to a **sequential attack** on the top-5 hubs to trace the full fragmentation curve. This analysis has direct real-world relevance: the February 2026 killing of El Mencho and the 2024 arrest of El Mayo Zambada are precisely the kind of hub removals our simulation models, allowing us to validate network-theoretic predictions against observed outcomes.
+
+## 1.4 Contributions of This Report
+
+1. **Signed network construction** from raw BACRIM CSV files, enriched with organizational specialty data from multiple intelligence sources.
+2. **Organizational profiling** — analyzing how cartel type, criminal specialty, and drug portfolio relate to network position and centrality.
+3. **Empirical comparison** to two null models (Erdős–Rényi and Barabási–Albert).
+4. **Topological link prediction** using Jaccard and Adamic-Adar metrics.
+5. **Network resilience simulation** via targeted node removal and sequential attack analysis.
+6. **Temporal contextualization** using Mexican crime trends (homicides, disappearances, arrests) from 2012–2021.
+
+## 1.5 Literature Review
+
+The application of network science to organized crime has grown substantially over the past two decades. Below we review key contributions that inform our analytical framework.
+
+### Criminal Networks as Complex Systems
+
+**Morselli (2009)** established the foundational framework for studying criminal organizations as networks in *Inside Criminal Networks*. He demonstrated that criminal groups exhibit structural properties — degree heterogeneity, clustering, and brokerage — that are not random but reflect strategic coordination and trust-building among actors. His work showed that centrality measures (degree and betweenness) can identify leaders and brokers in covert networks, even when intelligence is incomplete.
+
+**Sparrow (1991)** was among the first to argue that social network analysis (SNA) provides law enforcement with tools superior to traditional hierarchy-based organizational charts. He highlighted three key challenges of criminal network analysis that remain relevant: *incompleteness* (missing nodes and edges), *fuzzy boundaries* (unclear group membership), and *dynamics* (networks evolve over time).
+
+### Signed Networks and Structural Balance
+
+Our dataset contains both alliance (+) and rivalry (−) ties, making it a **signed network**. The theoretical foundation for analyzing such networks comes from **Heider's (1946)** balance theory and its formalization by **Cartwright & Harary (1956)**: in a balanced network, "the enemy of my enemy is my friend" and "the friend of my friend is my friend." **Leskovec, Huttenlocher & Kleinberg (2010)** extended balance theory to large-scale online networks and showed that real signed networks tend toward structural balance — a finding that applies to the cartel alliance/rivalry structure.
+
+### Network Robustness and Targeted Attacks
+
+**Albert, Jeong & Barabási (2000)** demonstrated the seminal result that **scale-free networks** (those with heavy-tailed degree distributions) are robust to random node failures but highly vulnerable to targeted attacks on hubs. This finding is directly relevant to law enforcement strategy: arresting random low-level operatives has minimal impact on network connectivity, while targeting the most connected nodes causes disproportionate fragmentation. **Callaway et al. (2000)** provided the complementary percolation-theory framework for understanding these phase transitions in network connectivity.
+
+**Duijn, Kashirin & Sloot (2014)** applied these robustness ideas specifically to criminal networks, showing that targeted disruption of brokers (high betweenness) is often more effective than targeting hubs (high degree), because broker removal increases path lengths and fragments communication channels even when the overall number of edges lost is small.
+
+### Link Prediction in Criminal Networks
+
+**Liben-Nowell & Kleinberg (2007)** established the theoretical framework for topological link prediction, comparing metrics such as common neighbors, Jaccard coefficient, and Adamic-Adar index. They showed that network topology alone — without external features — can predict future edges with significant accuracy.
+
+**Berlusconi et al. (2016)** applied link prediction specifically to criminal networks (Mafia co-offending networks in Italy), demonstrating that Jaccard and Adamic-Adar metrics can identify hidden connections that intelligence agencies later confirmed. Their work validates the use of these same metrics in our cartel context: shared allies create structural pressure toward alliance formation.
+
+### Mexican Cartel Networks Specifically
+
+**Prieto-Curiel & Campedelli (2023)** — the source of our BACRIM dataset — provided the first comprehensive signed network of Mexican cartel alliances and rivalries at the organizational level. They documented 150 organizations across Mexican states and showed that the network exhibits community structure aligned with geographic regions. Their work established the data foundation that we extend with centrality analysis, null model comparison, link prediction, and resilience simulation.
+
+**Coscia & Rios (2012)** analyzed the evolution of Mexican cartel territories over time, showing that violence and territorial fragmentation follow patterns consistent with network competition models. **Calderón et al. (2015)** studied how the Mexican government's "kingpin strategy" (targeting cartel leaders) produced network fragmentation that paradoxically increased violence — a finding directly relevant to our node removal analysis.
+
+### Summary of Theoretical Foundations
+
+| **Concept** | **Key Reference** | **Application in This Report** |
+|:---|:---|:---|
+| Criminal networks as complex systems | Morselli (2009) | Framework for centrality-based analysis |
+| Signed network balance theory | Cartwright & Harary (1956); Leskovec et al. (2010) | Alliance/rivalry structure interpretation |
+| Scale-free robustness / fragility | Albert, Jeong & Barabási (2000) | Targeted node removal simulation |
+| Broker disruption strategy | Duijn, Kashirin & Sloot (2014) | Betweenness vs. degree targeting |
+| Topological link prediction | Liben-Nowell & Kleinberg (2007); Berlusconi et al. (2016) | Jaccard and Adamic-Adar prediction |
+| BACRIM dataset and Mexican cartel structure | Prieto-Curiel & Campedelli (2023) | Data source and baseline findings |
+| Kingpin strategy and fragmentation | Calderón et al. (2015) | Real-world validation of hub removal effects |
+
+---
+
+# 2. Methods
+
+## 2.1 Data and Preprocessing
+
+We use five data files, three from the BACRIM 2020 dataset and two supplementary:
+
+**Network data (Prieto-Curiel & Campedelli, 2023):**
+
+- `BACRIM2020_Nodes.csv` — 150 cartel organizations with group name, state, and short name.
+- `BACRIM2020_Alliances.csv` — Alliance edges with positive weights (weight = number of Mexican states where the alliance is active).
+- `BACRIM2020_Rivals.csv` — Rivalry edges with negative weights (weight = number of states where the rivalry is active).
+
+**Organizational specialty data (compiled from DEA, CRS, InSight Crime):**
+
+- `BACRIM2020_Nodes_With_Specialties.csv` — Enriched node data with organizational type (National Cartel, Regional Cartel, Local, Cell, Toll-Collector), primary specialty (Drug Trafficking, Drug Retail, Extortion, Fuel Theft), detailed activity list, primary drug portfolio, and intelligence source attribution.
+
+**Temporal context data (INEGI):**
+
+- `Trends2012_2021.csv` — Annual counts of homicides, missing persons, and arrests in Mexico from 2012 to 2021, providing macro-level context for the violence landscape in which the BACRIM network operates.
+
+We build:
+
+1. A **signed undirected master graph** (alliance weight = +1, rivalry weight = −1).
+2. An **alliance-only subgraph** for predictive and structural tasks.
+
+```{python}
+#| label: setup
+#| code-summary: "Import libraries"
+
+import pandas as pd
+import numpy as np
+import networkx as nx
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from collections import Counter
+import os
+import warnings
+warnings.filterwarnings('ignore')
+
+# Create outputs directory
+os.makedirs("outputs", exist_ok=True)
+```
+
+```{python}
+#| label: load-data
+#| code-summary: "Load and preprocess all BACRIM 2020 data sources"
+
+# --- Load network data ---
+nodes_df = pd.read_csv("BACRIM2020_Nodes.csv")
+alliances_df = pd.read_csv("BACRIM2020_Alliances.csv")
+rivals_df = pd.read_csv("BACRIM2020_Rivals.csv")
+
+# --- Load enriched node data with specialties ---
+nodes_specialty_df = pd.read_csv("BACRIM2020_Nodes_With_Specialties.csv")
+
+# --- Load temporal trends ---
+trends_df = pd.read_csv("Trends2012_2021.csv")
+
+print("=" * 60)
+print("DATA SOURCES LOADED")
+print("=" * 60)
+print(f"\n[Network] Nodes: {len(nodes_df)}")
+print(f"[Network] Alliance edge records: {len(alliances_df)}")
+print(f"[Network] Rivalry edge records: {len(rivals_df)}")
+print(f"\n[Specialty] Enriched nodes: {len(nodes_specialty_df)}")
+documented = (nodes_specialty_df['Primary_Specialty'] != 'Undocumented').sum()
+print(f"[Specialty] Documented organizations: {documented} / {len(nodes_specialty_df)}")
+print(f"\n[Trends] Years covered: {trends_df['YEAR'].min()}–{trends_df['YEAR'].max()}")
+print(f"[Trends] Total homicides (decade): {trends_df['homicide'].sum():,}")
+print(f"[Trends] Total missing persons (decade): {trends_df['missings'].sum():,}")
+
+# Preview enriched nodes
+print("\n--- Sample of Enriched Node Data ---")
+nodes_specialty_df[["ShortName", "State", "Type", "Primary_Specialty",
+                     "Primary_Drugs"]].head(10)
+```
+
+```{python}
+#| label: build-graphs
+#| code-summary: "Build signed master graph and alliance subgraph"
+
+# --- Build node lookup ---
+node_labels = dict(zip(nodes_df["Node"], nodes_df["ShortName"]))
+
+# Build specialty lookups from enriched data
+node_type = dict(zip(nodes_specialty_df["Node"], nodes_specialty_df["Type"]))
+node_specialty = dict(zip(nodes_specialty_df["Node"],
+                          nodes_specialty_df["Primary_Specialty"]))
+node_state = dict(zip(nodes_specialty_df["Node"], nodes_specialty_df["State"]))
+node_drugs = dict(zip(nodes_specialty_df["Node"],
+                       nodes_specialty_df["Primary_Drugs"].fillna("")))
+
+# --- Deduplicate edges (each edge appears twice, once per direction) ---
+def deduplicate_edges(df):
+    """Canonicalize edges so (min_node, max_node) is always used."""
+    edges = []
+    seen = set()
+    for _, row in df.iterrows():
+        u, v = row["Node"], row["RNode"]
+        key = (min(u, v), max(u, v))
+        if key not in seen:
+            seen.add(key)
+            edges.append({"Node": u, "RNode": v, "weight": row["weight"]})
+    return pd.DataFrame(edges)
+
+alliances_dedup = deduplicate_edges(alliances_df)
+rivals_dedup = deduplicate_edges(rivals_df)
+
+print(f"Unique alliance edges: {len(alliances_dedup)}")
+print(f"Unique rivalry edges: {len(rivals_dedup)}")
+
+# --- Build signed master graph ---
+G_signed = nx.Graph()
+for _, row in nodes_specialty_df.iterrows():
+    G_signed.add_node(row["Node"], label=row["ShortName"],
+                      group=row["Group"], state=row["State"],
+                      org_type=row.get("Type", "Unknown"),
+                      specialty=row.get("Primary_Specialty", "Unknown"),
+                      drugs=row.get("Primary_Drugs", ""))
+
+for _, row in alliances_dedup.iterrows():
+    G_signed.add_edge(row["Node"], row["RNode"],
+                      weight=1, edge_type="alliance",
+                      strength=row["weight"])
+
+for _, row in rivals_dedup.iterrows():
+    G_signed.add_edge(row["Node"], row["RNode"],
+                      weight=-1, edge_type="rivalry",
+                      strength=row["weight"])
+
+# --- Build alliance-only subgraph ---
+G_alliance = nx.Graph()
+for _, row in nodes_specialty_df.iterrows():
+    G_alliance.add_node(row["Node"], label=row["ShortName"],
+                        group=row["Group"], state=row["State"],
+                        org_type=row.get("Type", "Unknown"),
+                        specialty=row.get("Primary_Specialty", "Unknown"),
+                        drugs=row.get("Primary_Drugs", ""))
+
+for _, row in alliances_dedup.iterrows():
+    G_alliance.add_edge(row["Node"], row["RNode"],
+                        weight=row["weight"])
+
+# Remove isolates from alliance graph for cleaner analysis
+isolates_alliance = list(nx.isolates(G_alliance))
+G_alliance_connected = G_alliance.copy()
+G_alliance_connected.remove_nodes_from(isolates_alliance)
+
+print(f"\nSigned master graph: {G_signed.number_of_nodes()} nodes, "
+      f"{G_signed.number_of_edges()} edges")
+print(f"Alliance graph (all nodes): {G_alliance.number_of_nodes()} nodes, "
+      f"{G_alliance.number_of_edges()} edges")
+print(f"Alliance graph (non-isolates): {G_alliance_connected.number_of_nodes()} nodes, "
+      f"{G_alliance_connected.number_of_edges()} edges")
+print(f"Isolates removed: {len(isolates_alliance)}")
+```
+
+## 2.2 Contextual Analysis: Crime Trends and Organizational Profiles
+
+Before analyzing the network structure, we examine the macro-level context in which these organizations operate and the composition of the BACRIM ecosystem.
+
+### 2.2.1 Mexican Crime Trends (2012–2021)
+
+The BACRIM 2020 network is a snapshot taken during a period of historically high violence in Mexico. The trends data provides essential context: the network of alliances and rivalries we analyze is not an abstraction — it operates within an environment where tens of thousands of homicides and disappearances occur annually.
+
+```{python}
+#| label: fig-crime-trends
+#| fig-cap: "Mexican Crime Trends 2012–2021: Homicides, Missing Persons, and Arrests"
+#| code-summary: "Plot temporal crime trends with BACRIM snapshot marker"
+
+fig, ax1 = plt.subplots(figsize=(10, 6))
+
+# Plot homicides and missing persons on left y-axis
+ax1.plot(trends_df["YEAR"], trends_df["homicide"], "o-", color="crimson",
+         linewidth=2, markersize=7, label="Homicides")
+ax1.plot(trends_df["YEAR"], trends_df["missings"], "s-", color="darkorange",
+         linewidth=2, markersize=7, label="Missing Persons")
+ax1.set_xlabel("Year", fontsize=12)
+ax1.set_ylabel("Count (Homicides / Missing)", fontsize=12, color="crimson")
+ax1.tick_params(axis="y", labelcolor="crimson")
+
+# Plot arrests on right y-axis
+ax2 = ax1.twinx()
+ax2.plot(trends_df["YEAR"], trends_df["arrests"], "^-", color="steelblue",
+         linewidth=2, markersize=7, label="Arrests")
+ax2.set_ylabel("Count (Arrests)", fontsize=12, color="steelblue")
+ax2.tick_params(axis="y", labelcolor="steelblue")
+
+# Mark the BACRIM 2020 snapshot year
+ax1.axvline(x=2020, color="gray", linestyle="--", alpha=0.7, linewidth=1.5)
+ax1.annotate("BACRIM 2020\nSnapshot",
+             xy=(2020, trends_df[trends_df["YEAR"]==2020]["homicide"].values[0]),
+             xytext=(2018, 38000), fontsize=9, fontweight="bold",
+             arrowprops=dict(arrowstyle="->", color="gray"),
+             color="gray")
+
+# Combine legends
+lines1, labels1 = ax1.get_legend_handles_labels()
+lines2, labels2 = ax2.get_legend_handles_labels()
+ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper left", fontsize=10)
+
+ax1.set_title("Mexican Crime Trends (2012–2021)", fontsize=14, fontweight="bold")
+ax1.grid(True, alpha=0.3)
+ax1.set_xticks(trends_df["YEAR"])
+
+plt.tight_layout()
+plt.savefig("outputs/crime_trends_2012_2021.png", dpi=200, bbox_inches="tight")
+plt.show()
+
+# Summary statistics
+print(f"Peak homicide year: {trends_df.loc[trends_df['homicide'].idxmax(), 'YEAR']} "
+      f"({trends_df['homicide'].max():,} homicides)")
+print(f"Peak missing year: {trends_df.loc[trends_df['missings'].idxmax(), 'YEAR']} "
+      f"({trends_df['missings'].max():,} missing)")
+print(f"2020 snapshot: {trends_df[trends_df['YEAR']==2020]['homicide'].values[0]:,} homicides, "
+      f"{trends_df[trends_df['YEAR']==2020]['missings'].values[0]:,} missing")
+```
+
+The data reveals a sharp escalation of violence beginning in 2017, coinciding with the intensification of Mexico's "kingpin strategy" and the fragmentation of major cartels. The BACRIM 2020 snapshot captures the network at near-peak violence levels — approximately 36,800 homicides and 22,900 missing persons. This is not coincidental: network fragmentation driven by law enforcement operations and inter-cartel competition directly fuels violence, as newly independent splinter groups fight for territorial control (Calderón et al., 2015).
+
+### 2.2.2 Organizational Profile of the BACRIM Ecosystem
+
+The 150 organizations in the BACRIM dataset are not homogeneous. They range from **national cartels** operating across multiple states with sophisticated logistics, to **local cells** controlling a single neighborhood. Understanding this diversity is essential for interpreting network structure — a "hub" that connects many small local groups occupies a fundamentally different role than a hub connecting other national-level cartels.
+
+```{python}
+#| label: fig-org-profiles
+#| fig-cap: "Organizational Composition of the BACRIM 2020 Network"
+#| code-summary: "Analyze organizational types, specialties, and drug portfolios"
+
+fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+
+# --- Panel 1: Organization Type ---
+type_counts = nodes_specialty_df["Type"].value_counts()
+colors_type = ["#2c3e50", "#e74c3c", "#3498db", "#f39c12", "#2ecc71",
+               "#9b59b6", "#1abc9c"]
+ax1 = axes[0]
+bars1 = ax1.barh(type_counts.index, type_counts.values, color=colors_type[:len(type_counts)])
+ax1.set_xlabel("Count", fontsize=11)
+ax1.set_title("Organization Type", fontsize=13, fontweight="bold")
+for bar, val in zip(bars1, type_counts.values):
+    ax1.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2,
+             str(val), va="center", fontsize=10, fontweight="bold")
+ax1.invert_yaxis()
+
+# --- Panel 2: Primary Specialty ---
+spec_counts = nodes_specialty_df["Primary_Specialty"].value_counts()
+ax2 = axes[1]
+bars2 = ax2.barh(spec_counts.index, spec_counts.values,
+                 color=["#e74c3c", "#95a5a6", "#3498db", "#f39c12",
+                        "#2ecc71", "#9b59b6"][:len(spec_counts)])
+ax2.set_xlabel("Count", fontsize=11)
+ax2.set_title("Primary Criminal Specialty", fontsize=13, fontweight="bold")
+for bar, val in zip(bars2, spec_counts.values):
+    ax2.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2,
+             str(val), va="center", fontsize=10, fontweight="bold")
+ax2.invert_yaxis()
+
+# --- Panel 3: Drug Portfolio ---
+has_drugs = nodes_specialty_df[nodes_specialty_df["Primary_Drugs"].notna() &
+                                (nodes_specialty_df["Primary_Drugs"] != "")]
+all_drugs = has_drugs["Primary_Drugs"].str.split(";").explode().str.strip()
+drug_counts = all_drugs.value_counts()
+
+ax3 = axes[2]
+bars3 = ax3.barh(drug_counts.index, drug_counts.values,
+                 color=["#e74c3c", "#3498db", "#f39c12", "#2ecc71",
+                        "#9b59b6"][:len(drug_counts)])
+ax3.set_xlabel("Number of Organizations", fontsize=11)
+ax3.set_title("Drug Portfolio (organizations handling each)", fontsize=13, fontweight="bold")
+for bar, val in zip(bars3, drug_counts.values):
+    ax3.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2,
+             str(val), va="center", fontsize=10, fontweight="bold")
+ax3.invert_yaxis()
+
+plt.suptitle("Organizational Composition of BACRIM 2020",
+             fontsize=15, fontweight="bold", y=1.02)
+plt.tight_layout()
+plt.savefig("outputs/organizational_profiles.png", dpi=200, bbox_inches="tight")
+plt.show()
+```
+
+```{python}
+#| label: org-summary-table
+#| code-summary: "Summary table of organizational profiles"
+
+# Activities breakdown
+has_activities = nodes_specialty_df[nodes_specialty_df["Activities"].notna() &
+                                    (nodes_specialty_df["Activities"] != "")]
+all_activities = has_activities["Activities"].str.split(";").explode().str.strip()
+activity_counts = all_activities.value_counts()
+
+print("=== Activity Frequency Across Documented Organizations ===")
+for act, cnt in activity_counts.items():
+    print(f"  {act}: {cnt} organizations")
+
+print(f"\n=== Key Statistics ===")
+print(f"Organizations with documented specialty: "
+      f"{(nodes_specialty_df['Primary_Specialty'] != 'Undocumented').sum()} / {len(nodes_specialty_df)}")
+print(f"Organizations with known drug portfolio: {len(has_drugs)} / {len(nodes_specialty_df)}")
+print(f"Most common drug: {drug_counts.index[0]} ({drug_counts.values[0]} orgs)")
+```
+
+---
+
+## 2.3 Topic 1: Foundations of Networks
+
+We compute fundamental network metrics on the **alliance graph**. These metrics characterize the global topology (how dense, how far apart are nodes, how clustered are connections) and identify the most important individual actors.
+
+### How Do We Determine the Importance of a Node?
+
+In network science, "importance" is not a single concept — different **centrality measures** capture different dimensions of a node's structural role. We use two complementary measures:
+
+#### Degree Centrality — Who Has the Most Connections?
+
+**Intuition.** The simplest way to measure a node's importance is to count how many connections it has. A cartel allied with 20 others is more "important" (in the sense of reach and coordination capacity) than one allied with 2.
+
+**Formal definition.** For a node $v$ in an undirected graph $G = (V, E)$ with $N = |V|$ nodes, the degree $k_v$ is the number of edges incident to $v$:
+
+$$k_v = \sum_{j \in V} A_{vj}$$
+
+where $A$ is the adjacency matrix ($A_{vj} = 1$ if $(v,j) \in E$, else 0). The **degree centrality** normalizes this by the maximum possible connections:
+
+$$C_D(v) = \frac{k_v}{N - 1}$$
+
+The value ranges from 0 (isolated node) to 1 (connected to every other node).
+
+**In the cartel context**: a high degree centrality means the organization maintains alliances with many other cartels simultaneously. This makes it a **hub** — a central coordinator in the cooperation network. CJNG, for example, has the highest degree centrality because it is allied with more organizations than any other cartel. Removing a high-degree node severs many connections at once, which is why law enforcement targets these hubs.
+
+**Algorithmic complexity**: Computing degree centrality for all nodes is $O(N + E)$ — simply count the edges per node and normalize.
+
+#### Betweenness Centrality — Who Controls the Flow?
+
+**Intuition.** Even a node with few connections can be critically important if it lies on the *only path* between two otherwise separate groups. Think of a small cartel that is the sole intermediary between a production hub and a distribution network — removing it disconnects the entire supply chain.
+
+**Formal definition.** Betweenness centrality measures how often a node lies on the **shortest paths** between other pairs of nodes. For a node $v$:
+
+$$C_B(v) = \sum_{\substack{s \neq v \neq t \\ s, t \in V}} \frac{\sigma_{st}(v)}{\sigma_{st}}$$
+
+where $\sigma_{st}$ is the total number of shortest paths from node $s$ to node $t$, and $\sigma_{st}(v)$ is the number of those shortest paths that pass through $v$. In NetworkX, this value is normalized by dividing by $\frac{(N-1)(N-2)}{2}$ for undirected graphs, so it falls in $[0, 1]$.
+
+**In the cartel context**: a high betweenness centrality identifies **brokers** or **bridge organizations** — cartels that connect otherwise separate clusters. Even if a cartel has relatively few direct alliances (moderate degree), it can have high betweenness if it is the *only path* linking two groups of cartels. Removing such a broker **fragments** the network into disconnected components.
+
+**Algorithm: Brandes' method.** Computing betweenness centrality naively requires enumerating all shortest paths — $O(N^3)$ for unweighted graphs. Brandes (2001) developed an efficient algorithm that runs in $O(NE)$ time:
+
+1. For each source node $s$, perform a BFS to compute shortest-path distances and counts $\sigma_{st}$ for all targets $t$.
+2. In a single backward pass (processing nodes in reverse BFS order), accumulate a **dependency score** $\delta_s(v) = \sum_{t: v \text{ is on } s{\text{-}}t \text{ path}} \frac{\sigma_{sv}}{\sigma_{st}} (1 + \delta_s(t))$.
+3. Sum the dependency scores: $C_B(v) = \sum_s \delta_s(v)$.
+
+This avoids explicitly enumerating all $O(N^2)$ shortest paths and instead propagates dependency information through the BFS tree.
+
+#### Why Use Both Measures Together?
+
+| Scenario | Degree | Betweenness | Interpretation |
+|:---|:---|:---|:---|
+| High degree, high betweenness | High | High | **Dominant hub** — many allies AND a bridge (e.g., CJNG) |
+| High degree, low betweenness | High | Low | **Local hub** — many allies but within a dense cluster; redundant paths exist around it |
+| Low degree, high betweenness | Low | High | **Critical bridge** — few allies but connects otherwise separated groups; removal causes fragmentation |
+| Low degree, low betweenness | Low | Low | **Peripheral node** — few allies, easily bypassed; removal has minimal impact |
+
+A node that ranks high on **both** measures (like CJNG in this network) is the most strategically important target: it is both highly connected and structurally irreplaceable. Conversely, a node that ranks high on betweenness but not degree represents a **hidden vulnerability** — its removal would fragment the network despite its seemingly modest alliance portfolio.
+
+This dual-centrality framework directly informs our targeted node removal simulation in [Section 2.6](#topic-4-network-resilience--targeted-node-removal): we select CJNG as the removal target precisely because it dominates both rankings.
+
+### 2.3.1 Basic Network Statistics
+
+```{python}
+#| label: basic-stats
+#| code-summary: "Compute basic network statistics"
+
+N = G_alliance_connected.number_of_nodes()
+E = G_alliance_connected.number_of_edges()
+density = nx.density(G_alliance_connected)
+
+# Diameter (only on largest connected component)
+components = list(nx.connected_components(G_alliance_connected))
+largest_cc = max(components, key=len)
+G_lcc = G_alliance_connected.subgraph(largest_cc).copy()
+diameter = nx.diameter(G_lcc)
+avg_path_length = nx.average_shortest_path_length(G_lcc)
+
+# Global clustering coefficient
+clustering = nx.transitivity(G_alliance_connected)
+
+stats = {
+    "Metric": ["Nodes (N)", "Edges (E)", "Density",
+                "Global Clustering Coefficient (C)",
+                "Diameter (LCC)", "Avg Path Length (LCC)",
+                "Connected Components", "Largest Component Size"],
+    "Value": [N, E, round(density, 4), round(clustering, 4),
+              diameter, round(avg_path_length, 4),
+              len(components), len(largest_cc)]
+}
+stats_df = pd.DataFrame(stats)
+stats_df.to_csv("outputs/basic_stats_alliance_network.csv", index=False)
+stats_df
+```
+
+The **density** $\rho = \frac{2E}{N(N-1)}$ measures the fraction of all possible edges that actually exist. A low density indicates that alliances are selective — organizations do not ally indiscriminately but rather form targeted partnerships.
+
+The **global clustering coefficient** $C = \frac{3 \times \text{triangles}}{\text{connected triples}}$ measures how often two allies of the same cartel are also allies of each other (triadic closure). A high clustering coefficient relative to a random graph of the same size suggests that "friends of friends tend to be friends" — a pattern consistent with trust-based alliance formation.
+
+The **diameter** $d = \max_{u,v \in \text{LCC}} d(u,v)$ is the longest shortest path in the largest connected component, and the **average path length** $\bar{\ell}$ measures how many alliance hops are needed, on average, to connect any two cartels. Small values relative to $N$ suggest a "small-world" property — even in a sparse network, coordination can propagate quickly.
+
+### 2.3.2 Centrality Analysis
+
+```{python}
+#| label: centrality
+#| code-summary: "Compute degree and betweenness centrality"
+
+# Degree centrality
+deg_cent = nx.degree_centrality(G_alliance_connected)
+deg_df = pd.DataFrame([
+    {"Node": n, "ShortName": node_labels.get(n, n),
+     "Type": node_type.get(n, "Unknown"),
+     "Specialty": node_specialty.get(n, "Unknown"),
+     "Degree_Centrality": round(v, 4)}
+    for n, v in deg_cent.items()
+]).sort_values("Degree_Centrality", ascending=False)
+
+top10_degree = deg_df.head(10)
+top10_degree.to_csv("outputs/top10_degree_centrality.csv", index=False)
+
+print("=== Top 10 by Degree Centrality ===")
+print(top10_degree.to_string(index=False))
+
+# Betweenness centrality
+btw_cent = nx.betweenness_centrality(G_alliance_connected)
+btw_df = pd.DataFrame([
+    {"Node": n, "ShortName": node_labels.get(n, n),
+     "Type": node_type.get(n, "Unknown"),
+     "Specialty": node_specialty.get(n, "Unknown"),
+     "Betweenness_Centrality": round(v, 4)}
+    for n, v in btw_cent.items()
+]).sort_values("Betweenness_Centrality", ascending=False)
+
+top10_between = btw_df.head(10)
+top10_between.to_csv("outputs/top10_betweenness_centrality.csv", index=False)
+
+print("\n=== Top 10 by Betweenness Centrality ===")
+print(top10_between.to_string(index=False))
+```
+
+### 2.3.3 Centrality by Organization Type
+
+To understand whether structural importance correlates with organizational scale, we break down centrality by **organization type**.
+
+```{python}
+#| label: fig-centrality-by-type
+#| fig-cap: "Distribution of Degree and Betweenness Centrality by Organization Type"
+#| code-summary: "Boxplots of centrality measures by organization type"
+
+# Merge centrality data with types
+centrality_df = pd.DataFrame({
+    "Node": list(deg_cent.keys()),
+    "Degree_Centrality": list(deg_cent.values()),
+    "Betweenness_Centrality": [btw_cent[n] for n in deg_cent.keys()],
+    "Type": [node_type.get(n, "Unknown") for n in deg_cent.keys()],
+    "Specialty": [node_specialty.get(n, "Unknown") for n in deg_cent.keys()]
+})
+
+# Order types by median degree centrality
+type_order = centrality_df.groupby("Type")["Degree_Centrality"].median().sort_values(
+    ascending=False).index.tolist()
+
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+# Degree centrality by type
+ax1 = axes[0]
+data_deg = [centrality_df[centrality_df["Type"] == t]["Degree_Centrality"].values
+            for t in type_order]
+bp1 = ax1.boxplot(data_deg, labels=type_order, patch_artist=True, vert=True)
+colors_box = ["#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6",
+              "#1abc9c", "#95a5a6"]
+for patch, color in zip(bp1["boxes"], colors_box[:len(bp1["boxes"])]):
+    patch.set_facecolor(color)
+    patch.set_alpha(0.6)
+ax1.set_ylabel("Degree Centrality", fontsize=12)
+ax1.set_title("Degree Centrality by Organization Type", fontsize=13, fontweight="bold")
+ax1.tick_params(axis="x", rotation=30)
+ax1.grid(True, alpha=0.3)
+
+# Betweenness centrality by type
+ax2 = axes[1]
+data_btw = [centrality_df[centrality_df["Type"] == t]["Betweenness_Centrality"].values
+            for t in type_order]
+bp2 = ax2.boxplot(data_btw, labels=type_order, patch_artist=True, vert=True)
+for patch, color in zip(bp2["boxes"], colors_box[:len(bp2["boxes"])]):
+    patch.set_facecolor(color)
+    patch.set_alpha(0.6)
+ax2.set_ylabel("Betweenness Centrality", fontsize=12)
+ax2.set_title("Betweenness Centrality by Organization Type", fontsize=13, fontweight="bold")
+ax2.tick_params(axis="x", rotation=30)
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig("outputs/centrality_by_type.png", dpi=200, bbox_inches="tight")
+plt.show()
+```
+
+### 2.3.4 Geographic Distribution
+
+```{python}
+#| label: fig-geographic
+#| fig-cap: "Alliance Network Colored by Mexican State"
+#| code-summary: "Geographic distribution of organizations and their alliances"
+
+# Count organizations per state
+state_counts = nodes_specialty_df["State"].value_counts()
+
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+# Panel 1: Bar chart of organizations per state (top 15)
+ax1 = axes[0]
+top_states = state_counts.head(15)
+ax1.barh(top_states.index[::-1], top_states.values[::-1], color="steelblue", alpha=0.8)
+ax1.set_xlabel("Number of Organizations", fontsize=11)
+ax1.set_title("Organizations per State (Top 15)", fontsize=13, fontweight="bold")
+ax1.grid(True, alpha=0.3, axis="x")
+
+# Panel 2: Cross-state alliances analysis
+ax2 = axes[1]
+same_state = 0
+cross_state = 0
+for u, v in G_alliance_connected.edges():
+    s_u = node_state.get(u, "")
+    s_v = node_state.get(v, "")
+    if s_u == s_v:
+        same_state += 1
+    else:
+        cross_state += 1
+
+labels = ["Same State\nAlliances", "Cross-State\nAlliances"]
+values = [same_state, cross_state]
+colors = ["#3498db", "#e74c3c"]
+bars = ax2.bar(labels, values, color=colors, alpha=0.8, width=0.5)
+for bar, val in zip(bars, values):
+    ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
+             f"{val} ({100*val/(same_state+cross_state):.1f}%)",
+             ha="center", fontsize=11, fontweight="bold")
+ax2.set_ylabel("Number of Alliance Edges", fontsize=11)
+ax2.set_title("Same-State vs Cross-State Alliances", fontsize=13, fontweight="bold")
+ax2.grid(True, alpha=0.3, axis="y")
+
+plt.tight_layout()
+plt.savefig("outputs/geographic_distribution.png", dpi=200, bbox_inches="tight")
+plt.show()
+
+print(f"Same-state alliances: {same_state} ({100*same_state/(same_state+cross_state):.1f}%)")
+print(f"Cross-state alliances: {cross_state} ({100*cross_state/(same_state+cross_state):.1f}%)")
+```
+
+### 2.3.5 Signed Network Visualization
+
+```{python}
+#| label: fig-signed-network
+#| fig-cap: "Signed Network: Alliances (green) and Rivalries (red) — Colored by Organization Type"
+#| code-summary: "Visualize signed master graph with organization type coloring"
+
+# Only plot non-isolated nodes in the signed graph
+G_signed_viz = G_signed.copy()
+isolates_signed = list(nx.isolates(G_signed_viz))
+G_signed_viz.remove_nodes_from(isolates_signed)
+
+# Layout
+pos = nx.spring_layout(G_signed_viz, k=0.5, iterations=80, seed=42)
+
+# Separate edges by type
+alliance_edges = [(u, v) for u, v, d in G_signed_viz.edges(data=True)
+                  if d.get("edge_type") == "alliance"]
+rivalry_edges = [(u, v) for u, v, d in G_signed_viz.edges(data=True)
+                 if d.get("edge_type") == "rivalry"]
+
+# Node sizes proportional to degree
+degrees = dict(G_signed_viz.degree())
+node_sizes = [max(degrees[n] * 40, 80) for n in G_signed_viz.nodes()]
+
+# Color by organization type
+type_color_map = {
+    "National Cartel": "#e74c3c",
+    "Regional Cartel": "#f39c12",
+    "Local": "#3498db",
+    "Cell": "#2ecc71",
+    "Toll-Collector": "#9b59b6",
+    "Undocumented": "#95a5a6",
+}
+node_colors = [type_color_map.get(node_type.get(n, "Undocumented"), "#95a5a6")
+               for n in G_signed_viz.nodes()]
+
+# Labels for high-degree nodes only
+labels = {}
+degree_threshold = sorted(degrees.values(), reverse=True)[min(15, len(degrees)-1)]
+for n in G_signed_viz.nodes():
+    if degrees[n] >= degree_threshold:
+        labels[n] = node_labels.get(n, n)
+
+fig, ax = plt.subplots(1, 1, figsize=(14, 10))
+
+# Draw edges
+nx.draw_networkx_edges(G_signed_viz, pos, edgelist=alliance_edges,
+                       edge_color="green", alpha=0.4, width=0.8, ax=ax)
+nx.draw_networkx_edges(G_signed_viz, pos, edgelist=rivalry_edges,
+                       edge_color="red", alpha=0.3, width=0.6,
+                       style="dashed", ax=ax)
+
+# Draw nodes
+nx.draw_networkx_nodes(G_signed_viz, pos, node_size=node_sizes,
+                       node_color=node_colors, alpha=0.7,
+                       edgecolors="k", linewidths=0.5, ax=ax)
+
+# Draw labels
+nx.draw_networkx_labels(G_signed_viz, pos, labels=labels,
+                        font_size=7, font_weight="bold", ax=ax)
+
+# Legend
+legend_patches = [mpatches.Patch(color=c, alpha=0.7, label=t)
+                  for t, c in type_color_map.items()]
+legend_patches.append(mpatches.Patch(color="green", alpha=0.5, label="Alliance Edge"))
+legend_patches.append(mpatches.Patch(color="red", alpha=0.4, label="Rivalry Edge"))
+ax.legend(handles=legend_patches, loc="upper left", fontsize=9, ncol=2)
+ax.set_title("BACRIM 2020: Signed Cartel Network (colored by organization type)",
+             fontsize=14, fontweight="bold")
+ax.axis("off")
+
+plt.tight_layout()
+plt.savefig("outputs/signed_network_by_type.png",
+            dpi=200, bbox_inches="tight")
+plt.show()
+```
+
+---
+
+## 2.4 Topic 2: Random Graph Models
+
+A central question in network analysis is whether the observed structure could have arisen by chance. To answer this, we compare the empirical alliance network against two **null models** — theoretical random graph constructions that serve as baselines.
+
+### The Erdős–Rényi Model $G(N, p)$
+
+**Intuition.** The simplest random graph: take $N$ nodes and independently connect each pair with probability $p$. Every possible edge is equally likely, and there is no preferential attachment, clustering, or community structure by construction.
+
+**Formal definition (Erdős & Rényi, 1959).** Given $N$ nodes, each of the $\binom{N}{2}$ possible edges exists independently with probability $p$. The expected number of edges is $\mathbb{E}[E] = \binom{N}{2} p$ and the expected degree of each node is:
+
+$$\langle k \rangle = (N-1)p$$
+
+The degree distribution follows a **Poisson distribution** for large $N$:
+
+$$P(k) \approx \frac{\langle k \rangle^k}{k!} e^{-\langle k \rangle}$$
+
+This means all nodes have roughly similar degree — there are no "hubs." The clustering coefficient converges to $C_{\text{ER}} = p = \frac{\langle k \rangle}{N-1}$, which is typically very small for sparse networks.
+
+**Why is ER a useful null model?** It represents the hypothesis that alliances form *at random* with no structural logic. If the real network has significantly higher clustering or different degree distribution than ER, we can reject this hypothesis and conclude that alliances are governed by some organizing principle (trust, geography, complementary specialization).
+
+**To match our data**, we set $p = \frac{2E_{\text{real}}}{N(N-1)}$ so that the ER graph has the same expected number of edges as the empirical alliance network.
+
+### The Barabási–Albert Model (Preferential Attachment)
+
+**Intuition.** In many real-world networks, new nodes do not connect randomly — they prefer to link to *already well-connected* nodes. This "rich get richer" mechanism, called **preferential attachment**, produces **hub-dominated** networks with heavy-tailed degree distributions.
+
+**Formal definition (Barabási & Albert, 1999).** Start with $m_0$ connected nodes. At each time step, a new node arrives and connects to $m$ existing nodes with probability proportional to their current degree:
+
+$$\Pi(k_i) = \frac{k_i}{\sum_j k_j}$$
+
+A node with degree $k$ is $k$ times more likely to attract new connections than a node with degree 1. The resulting degree distribution follows a **power law**:
+
+$$P(k) \sim k^{-\gamma}, \quad \gamma = 3$$
+
+In log-log space, this appears as a straight line with slope $-3$. The clustering coefficient of BA graphs is higher than ER but still lower than most real-world networks.
+
+**Why is BA a useful comparison?** If the real cartel network shows heavy-tailed degree distribution (a few hubs with many alliances, many groups with few), this is consistent with a preferential attachment mechanism: new or expanding cartels preferentially ally with already-powerful organizations, reinforcing their dominance.
+
+### 2.4.1 Null Model Generation and Comparison
+
+```{python}
+#| label: random-models
+#| code-summary: "Generate ER and BA null models and compare"
+
+N_emp = G_alliance_connected.number_of_nodes()
+E_emp = G_alliance_connected.number_of_edges()
+
+# Erdos-Renyi: match N and expected E
+p_er = (2 * E_emp) / (N_emp * (N_emp - 1))
+G_er = nx.erdos_renyi_graph(N_emp, p_er, seed=42)
+
+# Barabasi-Albert: m ≈ E / N (rounded)
+m_ba = max(1, round(E_emp / N_emp))
+G_ba = nx.barabasi_albert_graph(N_emp, m_ba, seed=42)
+
+def graph_metrics(G, name):
+    """Compute clustering and avg path length for largest component."""
+    C = nx.transitivity(G)
+    comps = list(nx.connected_components(G))
+    lcc = max(comps, key=len)
+    G_lcc = G.subgraph(lcc).copy()
+    L = nx.average_shortest_path_length(G_lcc)
+    return {
+        "Network": name,
+        "Nodes": G.number_of_nodes(),
+        "Edges": G.number_of_edges(),
+        "Clustering_C": round(C, 4),
+        "Avg_Path_Length_L": round(L, 4),
+        "LCC_Size": len(lcc),
+        "Density": round(nx.density(G), 4)
+    }
+
+metrics = [
+    graph_metrics(G_alliance_connected, "Real (Alliance)"),
+    graph_metrics(G_er, "Erdős–Rényi"),
+    graph_metrics(G_ba, "Barabási–Albert"),
+]
+comparison_df = pd.DataFrame(metrics)
+comparison_df.to_csv("outputs/random_graph_model_comparison.csv", index=False)
+comparison_df
+```
+
+### 2.4.2 Degree Distribution Analysis
+
+The degree distribution $P(k)$ — the probability that a randomly chosen node has degree $k$ — is a fingerprint of the network's generative process. We plot it on **log-log axes** to test for power-law behavior: if $P(k) \sim k^{-\gamma}$, then $\log P(k) = -\gamma \log k + c$, which appears as a straight line.
+
+```{python}
+#| label: fig-degree-dist
+#| fig-cap: "Degree Distribution on Log-Log Axes: Real vs ER vs BA"
+#| code-summary: "Plot degree distributions on log-log axes"
+
+def degree_distribution(G):
+    """Return sorted (degree, probability) pairs."""
+    degrees = [d for _, d in G.degree()]
+    counts = Counter(degrees)
+    total = sum(counts.values())
+    ks = sorted(counts.keys())
+    probs = [counts[k] / total for k in ks]
+    return ks, probs
+
+fig, ax = plt.subplots(1, 1, figsize=(9, 6))
+
+for G_plot, label, color, marker in [
+    (G_alliance_connected, "Real (Alliance)", "steelblue", "o"),
+    (G_er, "Erdős–Rényi", "orange", "s"),
+    (G_ba, "Barabási–Albert", "green", "^"),
+]:
+    ks, probs = degree_distribution(G_plot)
+    ax.scatter(ks, probs, label=label, color=color, marker=marker,
+               s=50, alpha=0.7, edgecolors="k", linewidths=0.5)
+
+ax.set_xscale("log")
+ax.set_yscale("log")
+ax.set_xlabel("Degree k", fontsize=12)
+ax.set_ylabel("P(k)", fontsize=12)
+ax.set_title("Degree Distribution (Log-Log)", fontsize=14, fontweight="bold")
+ax.legend(fontsize=11)
+ax.grid(True, alpha=0.3, which="both")
+
+plt.tight_layout()
+plt.savefig("outputs/degree_distribution_loglog.png",
+            dpi=200, bbox_inches="tight")
+plt.show()
+```
+
+### 2.4.3 Small-World Analysis
+
+A network is said to exhibit the **small-world property** (Watts & Strogatz, 1998) if it has:
+
+1. **High clustering** relative to a random graph: $C_{\text{real}} \gg C_{\text{ER}}$
+2. **Short path lengths** comparable to a random graph: $L_{\text{real}} \approx L_{\text{ER}}$
+
+The small-world coefficient $\sigma$ formalizes this:
+
+$$\sigma = \frac{C_{\text{real}} / C_{\text{ER}}}{L_{\text{real}} / L_{\text{ER}}}$$
+
+A value $\sigma > 1$ indicates small-world properties. Intuitively, a small-world network has dense local clusters (allies of allies tend to be allies) but also enough "shortcuts" (cross-cluster alliances) to keep all nodes close in terms of path length.
+
+```{python}
+#| label: small-world
+#| code-summary: "Compute small-world coefficient"
+
+C_real = nx.transitivity(G_alliance_connected)
+C_er = nx.transitivity(G_er)
+
+lcc_real = max(nx.connected_components(G_alliance_connected), key=len)
+L_real = nx.average_shortest_path_length(
+    G_alliance_connected.subgraph(lcc_real).copy())
+
+lcc_er = max(nx.connected_components(G_er), key=len)
+L_er = nx.average_shortest_path_length(G_er.subgraph(lcc_er).copy())
+
+if C_er > 0 and L_er > 0:
+    sigma = (C_real / C_er) / (L_real / L_er)
+    print(f"Small-World Analysis:")
+    print(f"  C_real = {C_real:.4f}, C_ER = {C_er:.4f} → ratio = {C_real/C_er:.2f}")
+    print(f"  L_real = {L_real:.4f}, L_ER = {L_er:.4f} → ratio = {L_real/L_er:.2f}")
+    print(f"  σ = {sigma:.2f}")
+    print(f"  {'Small-world property detected (σ > 1)' if sigma > 1 else 'No clear small-world property (σ ≤ 1)'}")
+else:
+    print("Cannot compute small-world coefficient (ER clustering or path length is 0)")
+```
+
+---
+
+## 2.5 Topic 3: Link Prediction
+
+We predict **future alliances** among currently non-adjacent pairs in the alliance graph using two topological similarity metrics. The fundamental idea, formalized by Liben-Nowell & Kleinberg (2007), is that two nodes sharing many common neighbors are likely to form a direct connection in the future — the **"friends of friends"** principle.
+
+### Algorithm: Jaccard Coefficient
+
+**Intuition.** The Jaccard coefficient measures the *proportion* of neighbors that two nodes share, relative to their total combined neighborhood. It penalizes pairs where one node has many neighbors but shares few of them with the other.
+
+**Formal definition.** For two non-adjacent nodes $u$ and $v$ with neighborhoods $\mathcal{N}(u)$ and $\mathcal{N}(v)$:
+
+$$J(u, v) = \frac{|\mathcal{N}(u) \cap \mathcal{N}(v)|}{|\mathcal{N}(u) \cup \mathcal{N}(v)|}$$
+
+The value ranges from 0 (no shared neighbors) to 1 (identical neighborhoods). In the cartel context, $J = 0.5$ between two organizations means that half of their combined alliance portfolio overlaps — a strong topological signal that a direct alliance is plausible.
+
+**Computational complexity.** For a single pair, computing $J$ requires set intersection and union of neighbor lists: $O(\min(k_u, k_v))$ with sorted adjacency lists. For all non-edges: $O(N^2 \cdot \bar{k})$.
+
+### Algorithm: Adamic-Adar Index
+
+**Intuition.** Not all shared neighbors are equally informative. If two cartels share a common ally that itself has 50 alliances, this is less meaningful (the common ally allies with everyone) than if they share a common ally that has only 3 alliances (a selective, exclusive connection). Adamic-Adar weights each shared neighbor inversely by the logarithm of its degree.
+
+**Formal definition (Adamic & Adar, 2003).** For two non-adjacent nodes $u$ and $v$:
+
+$$AA(u, v) = \sum_{w \in \mathcal{N}(u) \cap \mathcal{N}(v)} \frac{1}{\log |\mathcal{N}(w)|}$$
+
+Each shared neighbor $w$ contributes $\frac{1}{\log k_w}$ to the score. Low-degree shared neighbors contribute more because they represent **selective, informative** connections. A shared ally with degree 2 contributes $\frac{1}{\log 2} \approx 1.44$, while one with degree 100 contributes only $\frac{1}{\log 100} \approx 0.22$.
+
+**Why Adamic-Adar complements Jaccard.** Jaccard treats all shared neighbors equally, while Adamic-Adar gives more weight to rare connections. In practice, the top-ranked predictions by both metrics are often similar, but Adamic-Adar can surface pairs connected through exclusive intermediaries that Jaccard would undervalue.
+
+### 2.5.1 Predicted Future Alliances
+
+```{python}
+#| label: link-prediction
+#| code-summary: "Compute Jaccard and Adamic-Adar for non-edges"
+
+# Get non-edges (candidate links) for connected alliance graph
+non_edges = list(nx.non_edges(G_alliance_connected))
+
+# Compute Jaccard coefficient
+jaccard_scores = {}
+for u, v, score in nx.jaccard_coefficient(G_alliance_connected, non_edges):
+    jaccard_scores[(u, v)] = score
+
+# Compute Adamic-Adar index
+adamic_scores = {}
+for u, v, score in nx.adamic_adar_index(G_alliance_connected, non_edges):
+    adamic_scores[(u, v)] = score
+
+# Build results DataFrame
+predictions = []
+for (u, v) in non_edges:
+    predictions.append({
+        "Node_A": u,
+        "Name_A": node_labels.get(u, u),
+        "Type_A": node_type.get(u, "Unknown"),
+        "Node_B": v,
+        "Name_B": node_labels.get(v, v),
+        "Type_B": node_type.get(v, "Unknown"),
+        "Jaccard": round(jaccard_scores.get((u, v), 0), 4),
+        "Adamic_Adar": round(adamic_scores.get((u, v), 0), 4),
+    })
+
+pred_df = pd.DataFrame(predictions)
+
+# Sort descending by Jaccard, then by Adamic-Adar
+pred_df = pred_df.sort_values(["Jaccard", "Adamic_Adar"],
+                               ascending=[False, False])
+
+# Top 15 predicted future alliances
+top15 = pred_df.head(15).reset_index(drop=True)
+top15.index = top15.index + 1  # 1-based ranking
+top15.to_csv("outputs/top15_predicted_future_alliances.csv", index=True,
+             index_label="Rank")
+
+print("=== Top 15 Predicted Future Alliances ===")
+top15[["Name_A", "Type_A", "Name_B", "Type_B", "Jaccard", "Adamic_Adar"]]
+```
+
+### 2.5.2 Prediction Score Distribution
+
+```{python}
+#| label: fig-link-pred-dist
+#| fig-cap: "Distribution of Link Prediction Scores Across All Non-Edge Pairs"
+#| code-summary: "Histogram of Jaccard and Adamic-Adar scores"
+
+# Filter to non-zero scores
+nonzero_jaccard = pred_df[pred_df["Jaccard"] > 0]["Jaccard"]
+nonzero_adamic = pred_df[pred_df["Adamic_Adar"] > 0]["Adamic_Adar"]
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+ax1 = axes[0]
+ax1.hist(nonzero_jaccard, bins=30, color="steelblue", alpha=0.7, edgecolor="black")
+ax1.axvline(x=top15["Jaccard"].min(), color="red", linestyle="--", linewidth=2,
+            label=f"Top-15 threshold: {top15['Jaccard'].min():.3f}")
+ax1.set_xlabel("Jaccard Coefficient", fontsize=12)
+ax1.set_ylabel("Frequency", fontsize=12)
+ax1.set_title("Jaccard Score Distribution (non-zero)", fontsize=13, fontweight="bold")
+ax1.legend(fontsize=10)
+ax1.grid(True, alpha=0.3)
+
+ax2 = axes[1]
+ax2.hist(nonzero_adamic, bins=30, color="darkorange", alpha=0.7, edgecolor="black")
+ax2.axvline(x=top15["Adamic_Adar"].min(), color="red", linestyle="--", linewidth=2,
+            label=f"Top-15 threshold: {top15['Adamic_Adar'].min():.3f}")
+ax2.set_xlabel("Adamic-Adar Index", fontsize=12)
+ax2.set_ylabel("Frequency", fontsize=12)
+ax2.set_title("Adamic-Adar Score Distribution (non-zero)", fontsize=13, fontweight="bold")
+ax2.legend(fontsize=10)
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig("outputs/link_prediction_distributions.png", dpi=200, bbox_inches="tight")
+plt.show()
+
+print(f"Total non-edge pairs: {len(pred_df):,}")
+print(f"Pairs with non-zero Jaccard: {len(nonzero_jaccard):,} ({100*len(nonzero_jaccard)/len(pred_df):.1f}%)")
+print(f"Pairs with non-zero Adamic-Adar: {len(nonzero_adamic):,} ({100*len(nonzero_adamic)/len(pred_df):.1f}%)")
+```
+
+---
+
+## 2.6 Topic 4: Network Resilience — Targeted Node Removal
+
+A fundamental question in network science is: **how does a network respond when a critical node is removed?** This is known as **network robustness analysis** or **attack tolerance** (Albert, Jeong & Barabási, 2000). In the cartel context, node removal simulates real-world disruption events — the arrest, death, or incapacitation of a cartel leader and the consequent dissolution of that organization's alliances.
+
+### Algorithmic Framework
+
+The simulation is based on two classical network attack strategies from the robustness literature:
+
+#### Algorithm 1: Single Targeted Node Removal
+
+Given a graph $G = (V, E)$ and a target node $v^* \in V$:
+
+1. **Snapshot pre-removal metrics** on $G$: compute $N$, $E$, density $\rho = \frac{2E}{N(N-1)}$, global clustering coefficient $C$, number of connected components $k$, size of the largest connected component (LCC), diameter $d$ and average shortest path length $\bar{\ell}$ of the LCC.
+2. **Remove** $v^*$ and all its incident edges: $G' = G - \{v^*\}$, which deletes all edges $\{(v^*, u) : u \in \mathcal{N}(v^*)\}$ where $\mathcal{N}(v^*)$ is the neighborhood of $v^*$.
+3. **Prune new isolates**: any node $u$ whose degree becomes 0 after removal (i.e., $u$ was connected to the rest of the network *only* through $v^*$) is also removed, since isolated nodes are not meaningful for structural analysis.
+4. **Recompute all metrics** on $G'$ and report the difference $\Delta$.
+
+The choice of **which** node to remove is guided by centrality. We target the node with the highest degree centrality $C_D(v) = \frac{\deg(v)}{N-1}$ — in this case CJNG (El Mencho), which is also the highest-betweenness node.
+
+#### Algorithm 2: Sequential Targeted Attack (Iterative Hub Removal)
+
+This extends Algorithm 1 to a sequence of $k$ removals and is the more realistic model of sustained law enforcement operations:
+
+1. Set $G_0 = G$, $t = 0$.
+2. **While** $t < k$ and $G_t$ is non-empty:
+   - Compute degree of all nodes in $G_t$.
+   - Select $v_t^* = \arg\max_{v \in V_t} \deg_t(v)$ (the current highest-degree node).
+   - Remove $v_t^*$: $G_{t+1} = G_t - \{v_t^*\}$, prune new isolates.
+   - Record $|LCC_{t+1}|$, number of components, and edges remaining.
+   - $t \leftarrow t + 1$.
+3. Plot the **fragmentation curve**: $|LCC_t|$ as a function of $t$.
+
+**Crucially**, the degree is recalculated after each removal. This is an **adaptive attack** — the next target depends on the current graph state, not the original ranking. This is more realistic than removing all top-$k$ nodes simultaneously, because law enforcement operations unfold sequentially and the network reorganizes between each disruption.
+
+### Why Scale-Free-Like Networks Are Especially Vulnerable
+
+Albert, Jeong & Barabási (2000) proved a fundamental asymmetry:
+
+- **Random failure**: removing nodes uniformly at random has minimal impact on network connectivity, because most removed nodes are low-degree peripheral nodes.
+- **Targeted attack**: removing the highest-degree node first causes maximum disruption per removal, because the hub's many edges are all severed simultaneously.
+
+The mathematical intuition comes from the **percolation threshold**. In a network with degree distribution $P(k)$, the critical fraction of nodes that must be removed to destroy the giant component is:
+
+$$f_c = 1 - \frac{1}{\kappa - 1}, \quad \text{where} \quad \kappa = \frac{\langle k^2 \rangle}{\langle k \rangle}$$
+
+For heavy-tailed degree distributions, $\kappa$ is large (driven by high-degree hubs), so $f_c \to 1$ under random failure (very robust). But under targeted attack, each removal reduces $\kappa$ substantially, leading to rapid collapse.
+
+### Metrics Tracked and Their Interpretation
+
+| **Metric** | **Definition** | **What a change reveals** |
+|:---|:---|:---|
+| **Nodes / Edges** | $N$, $E$ after removal | Direct loss of actors and connections |
+| **Density** | $\rho = 2E / (N(N-1))$ | Whether remaining nodes are more or less interconnected |
+| **Clustering $C$** | $C = \frac{3 \times \text{triangles}}{\text{connected triples}}$ | Whether local cohesion (triadic closure) increases or decreases |
+| **Components** | Number of connected components $k$ | Network fragmentation — higher $k$ means more isolated subgroups |
+| **LCC Size** | Nodes in the largest connected component | How much of the network remains reachable after disruption |
+| **Diameter** | $d = \max_{u,v} d(u,v)$ in LCC | Maximum communication distance in the surviving network |
+| **Avg Path Length** | $\bar{\ell} = \frac{1}{n(n-1)} \sum_{u \neq v} d(u,v)$ in LCC | Average reachability — higher $\bar{\ell}$ means slower coordination |
+
+### Assumptions
+
+1. **Node ≈ Organization**: We equate removing a node with neutralizing the entire cartel organization it represents. In reality, killing a leader (El Mencho) does not instantly dissolve CJNG — but it does sever the decision-making center that maintained alliances, making this a reasonable first-order approximation.
+2. **Alliance-only graph**: We perform the simulation on the positive-ties subgraph only. Rivalry edges are excluded because we are interested in how the *cooperation structure* fragments. In practice, rivalry ties might actually intensify after a hub removal (rival groups may attack the weakened remnants).
+3. **Static removal**: We assume no rewiring — once CJNG is removed, its former allies do not immediately form new alliances with each other. This is a conservative (worst-case) assumption; in reality, some re-alignment would occur over time.
+4. **Isolate pruning**: Nodes that become completely disconnected after the removal are pruned from analysis. These represent cartels that had *no other alliances* besides the removed node — they effectively exit the cooperation network.
+5. **Adaptive sequential attack**: In the sequential removal, we re-rank by degree after each step rather than using the original ranking. This models a realistic strategy where law enforcement adapts to the evolving network.
+6. **Undirected, unweighted edges for topology**: While the original data has alliance weights (indicating alliance strength across states), the topological algorithms (degree, betweenness, clustering, path length) treat all edges as unweighted. This focuses the analysis on structural position rather than tie strength.
+
+### 2.6.1 Simulating the Removal of CJNG
+
+```{python}
+#| label: node-removal-metrics
+#| code-summary: "Simulate targeted removal of CJNG and compare metrics"
+
+# --- Identify CJNG node ---
+target_node = "N10025"  # CJNG
+target_label = node_labels.get(target_node, target_node)
+target_type = node_type.get(target_node, "Unknown")
+target_spec = node_specialty.get(target_node, "Unknown")
+
+print(f"Target node: {target_node} ({target_label})")
+print(f"Type: {target_type}")
+print(f"Specialty: {target_spec}")
+print(f"Degree in alliance network: {G_alliance_connected.degree(target_node)}")
+print(f"Neighbors: {[node_labels.get(n, n) for n in G_alliance_connected.neighbors(target_node)]}")
+
+# --- Compute pre-removal metrics ---
+def comprehensive_metrics(G, name):
+    """Compute a full set of structural metrics for a graph."""
+    n = G.number_of_nodes()
+    e = G.number_of_edges()
+    d = nx.density(G)
+    C = nx.transitivity(G)
+    comps = list(nx.connected_components(G))
+    n_comps = len(comps)
+    lcc = max(comps, key=len)
+    lcc_size = len(lcc)
+    G_lcc = G.subgraph(lcc).copy()
+    diam = nx.diameter(G_lcc) if lcc_size > 1 else 0
+    avg_pl = nx.average_shortest_path_length(G_lcc) if lcc_size > 1 else 0
+    return {
+        "Network": name,
+        "Nodes": n,
+        "Edges": e,
+        "Density": round(d, 4),
+        "Clustering_C": round(C, 4),
+        "Components": n_comps,
+        "LCC_Size": lcc_size,
+        "Diameter_LCC": diam,
+        "Avg_Path_Length_LCC": round(avg_pl, 4)
+    }
+
+pre_metrics = comprehensive_metrics(G_alliance_connected, "Before Removal")
+
+# --- Remove CJNG ---
+G_post_removal = G_alliance_connected.copy()
+G_post_removal.remove_node(target_node)
+
+# Remove any new isolates created by the removal
+new_isolates = list(nx.isolates(G_post_removal))
+G_post_removal.remove_nodes_from(new_isolates)
+print(f"\nNew isolates after removal: {len(new_isolates)} → "
+      f"{[node_labels.get(n, n) for n in new_isolates]}")
+
+post_metrics = comprehensive_metrics(G_post_removal, "After Removal (CJNG)")
+
+# --- Comparison table ---
+comparison = pd.DataFrame([pre_metrics, post_metrics])
+delta = {
+    "Network": "Δ Change",
+    "Nodes": post_metrics["Nodes"] - pre_metrics["Nodes"],
+    "Edges": post_metrics["Edges"] - pre_metrics["Edges"],
+    "Density": round(post_metrics["Density"] - pre_metrics["Density"], 4),
+    "Clustering_C": round(post_metrics["Clustering_C"] - pre_metrics["Clustering_C"], 4),
+    "Components": post_metrics["Components"] - pre_metrics["Components"],
+    "LCC_Size": post_metrics["LCC_Size"] - pre_metrics["LCC_Size"],
+    "Diameter_LCC": post_metrics["Diameter_LCC"] - pre_metrics["Diameter_LCC"],
+    "Avg_Path_Length_LCC": round(
+        post_metrics["Avg_Path_Length_LCC"] - pre_metrics["Avg_Path_Length_LCC"], 4),
+}
+comparison = pd.concat([comparison, pd.DataFrame([delta])], ignore_index=True)
+comparison.to_csv("outputs/node_removal_impact_cjng.csv", index=False)
+comparison
+```
+
+### 2.6.2 Before vs After Visualization
+
+```{python}
+#| label: fig-node-removal
+#| fig-cap: "Alliance Network Before and After Removal of CJNG (El Mencho)"
+#| code-summary: "Side-by-side visualization of targeted node removal"
+
+fig, axes = plt.subplots(1, 2, figsize=(18, 8))
+
+# --- Shared layout based on original graph (for spatial consistency) ---
+pos_orig = nx.spring_layout(G_alliance_connected, k=0.6, iterations=80, seed=42)
+
+# === Panel 1: Before removal ===
+ax1 = axes[0]
+deg_before = dict(G_alliance_connected.degree())
+sizes_before = [max(deg_before[n] * 50, 80) for n in G_alliance_connected.nodes()]
+
+# Color: highlight CJNG in red, its neighbors in orange, rest in steelblue
+cjng_neighbors = set(G_alliance_connected.neighbors(target_node))
+colors_before = []
+for n in G_alliance_connected.nodes():
+    if n == target_node:
+        colors_before.append("red")
+    elif n in cjng_neighbors:
+        colors_before.append("orange")
+    else:
+        colors_before.append("steelblue")
+
+nx.draw_networkx_edges(G_alliance_connected, pos_orig, alpha=0.3,
+                       width=0.8, ax=ax1)
+nx.draw_networkx_nodes(G_alliance_connected, pos_orig, node_size=sizes_before,
+                       node_color=colors_before, alpha=0.7,
+                       edgecolors="k", linewidths=0.5, ax=ax1)
+
+# Labels for high-degree nodes
+labels_before = {}
+deg_thresh = sorted(deg_before.values(), reverse=True)[min(10, len(deg_before)-1)]
+for n in G_alliance_connected.nodes():
+    if deg_before[n] >= deg_thresh or n == target_node:
+        labels_before[n] = node_labels.get(n, n)
+nx.draw_networkx_labels(G_alliance_connected, pos_orig, labels=labels_before,
+                        font_size=7, font_weight="bold", ax=ax1)
+
+red_patch = mpatches.Patch(color="red", label=f"Target: {target_label}")
+orange_patch = mpatches.Patch(color="orange", label=f"Direct allies of {target_label}")
+blue_patch = mpatches.Patch(color="steelblue", label="Other nodes")
+ax1.legend(handles=[red_patch, orange_patch, blue_patch], loc="upper left", fontsize=9)
+ax1.set_title("BEFORE Removal", fontsize=13, fontweight="bold")
+ax1.axis("off")
+
+# === Panel 2: After removal ===
+ax2 = axes[1]
+pos_after = {n: pos_orig[n] for n in G_post_removal.nodes() if n in pos_orig}
+deg_after = dict(G_post_removal.degree())
+sizes_after = [max(deg_after[n] * 50, 80) for n in G_post_removal.nodes()]
+
+# Color: former CJNG neighbors in orange, rest steelblue
+colors_after = []
+for n in G_post_removal.nodes():
+    if n in cjng_neighbors:
+        colors_after.append("orange")
+    else:
+        colors_after.append("steelblue")
+
+nx.draw_networkx_edges(G_post_removal, pos_after, alpha=0.3,
+                       width=0.8, ax=ax2)
+nx.draw_networkx_nodes(G_post_removal, pos_after, node_size=sizes_after,
+                       node_color=colors_after, alpha=0.7,
+                       edgecolors="k", linewidths=0.5, ax=ax2)
+
+# Labels
+labels_after = {}
+if len(deg_after) > 0:
+    deg_thresh2 = sorted(deg_after.values(), reverse=True)[min(10, len(deg_after)-1)]
+    for n in G_post_removal.nodes():
+        if deg_after[n] >= deg_thresh2 or n in cjng_neighbors:
+            labels_after[n] = node_labels.get(n, n)
+nx.draw_networkx_labels(G_post_removal, pos_after, labels=labels_after,
+                        font_size=7, font_weight="bold", ax=ax2)
+
+orange_patch2 = mpatches.Patch(color="orange", label=f"Former allies of {target_label}")
+blue_patch2 = mpatches.Patch(color="steelblue", label="Other nodes")
+ax2.legend(handles=[orange_patch2, blue_patch2], loc="upper left", fontsize=9)
+ax2.set_title(f"AFTER Removal of {target_label}", fontsize=13, fontweight="bold")
+ax2.axis("off")
+
+plt.suptitle(f"Targeted Node Removal: {target_label} (CJNG)",
+             fontsize=15, fontweight="bold", y=1.02)
+plt.tight_layout()
+plt.savefig("outputs/node_removal_before_after.png",
+            dpi=200, bbox_inches="tight")
+plt.show()
+```
+
+### 2.6.3 Sequential Targeted Attack (Top-5 Hubs)
+
+To understand network **fragility**, we iteratively remove the top-5 highest-degree nodes one by one and track how the largest connected component (LCC) shrinks. This mimics a law-enforcement strategy of sequentially targeting the most connected actors.
+
+```{python}
+#| label: fig-sequential-attack
+#| fig-cap: "Network Fragmentation Under Sequential Targeted Attack (Removing Top-5 Hubs)"
+#| code-summary: "Sequential removal of top-degree nodes and LCC tracking"
+
+# --- Sequential targeted attack ---
+G_attack = G_alliance_connected.copy()
+
+# Track metrics at each step
+attack_log = []
+lcc_sizes = []
+
+# Step 0: original
+comps_0 = list(nx.connected_components(G_attack))
+lcc_0 = max(comps_0, key=len)
+attack_log.append({
+    "Step": 0, "Removed": "(none)",
+    "Removed_Type": "",
+    "Nodes_Left": G_attack.number_of_nodes(),
+    "Edges_Left": G_attack.number_of_edges(),
+    "Components": len(comps_0),
+    "LCC_Size": len(lcc_0)
+})
+
+# Remove top 5 nodes by degree, one at a time
+for step in range(1, 6):
+    # Recalculate degree after each removal
+    deg = dict(G_attack.degree())
+    if not deg:
+        break
+    top_node = max(deg, key=deg.get)
+    top_label = node_labels.get(top_node, top_node)
+    top_type = node_type.get(top_node, "Unknown")
+    G_attack.remove_node(top_node)
+
+    # Remove new isolates
+    iso = list(nx.isolates(G_attack))
+    G_attack.remove_nodes_from(iso)
+
+    comps = list(nx.connected_components(G_attack))
+    lcc = max(comps, key=len) if comps else set()
+    attack_log.append({
+        "Step": step,
+        "Removed": f"{top_label} (deg={deg[top_node]})",
+        "Removed_Type": top_type,
+        "Nodes_Left": G_attack.number_of_nodes(),
+        "Edges_Left": G_attack.number_of_edges(),
+        "Components": len(comps),
+        "LCC_Size": len(lcc)
+    })
+
+attack_df = pd.DataFrame(attack_log)
+attack_df.to_csv("outputs/sequential_attack_log.csv", index=False)
+
+print("=== Sequential Targeted Attack Log ===")
+print(attack_df.to_string(index=False))
+
+# --- Plot LCC shrinkage ---
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+# Panel 1: LCC size
+ax1 = axes[0]
+ax1.plot(attack_df["Step"], attack_df["LCC_Size"], "o-",
+        color="crimson", linewidth=2, markersize=8)
+ax1.fill_between(attack_df["Step"], attack_df["LCC_Size"],
+                alpha=0.15, color="crimson")
+
+# Annotate each removal
+for _, row in attack_df.iterrows():
+    if row["Step"] > 0:
+        ax1.annotate(row["Removed"].split(" (")[0],
+                    xy=(row["Step"], row["LCC_Size"]),
+                    textcoords="offset points", xytext=(0, 12),
+                    fontsize=8, fontweight="bold", ha="center",
+                    color="darkred")
+
+ax1.set_xlabel("Removal Step", fontsize=12)
+ax1.set_ylabel("Largest Connected Component Size", fontsize=12)
+ax1.set_title("LCC Shrinkage Under Sequential Hub Removal",
+             fontsize=13, fontweight="bold")
+ax1.set_xticks(attack_df["Step"])
+ax1.grid(True, alpha=0.3)
+
+# Panel 2: Number of components
+ax2 = axes[1]
+ax2.plot(attack_df["Step"], attack_df["Components"], "s-",
+         color="steelblue", linewidth=2, markersize=8)
+ax2.fill_between(attack_df["Step"], attack_df["Components"],
+                 alpha=0.15, color="steelblue")
+
+for _, row in attack_df.iterrows():
+    if row["Step"] > 0:
+        ax2.annotate(row["Removed"].split(" (")[0],
+                     xy=(row["Step"], row["Components"]),
+                     textcoords="offset points", xytext=(0, 12),
+                     fontsize=8, fontweight="bold", ha="center",
+                     color="darkblue")
+
+ax2.set_xlabel("Removal Step", fontsize=12)
+ax2.set_ylabel("Number of Connected Components", fontsize=12)
+ax2.set_title("Network Fragmentation (Component Count)",
+              fontsize=13, fontweight="bold")
+ax2.set_xticks(attack_df["Step"])
+ax2.grid(True, alpha=0.3)
+
+plt.suptitle("Network Fragmentation: Sequential Hub Removal",
+             fontsize=15, fontweight="bold", y=1.02)
+plt.tight_layout()
+plt.savefig("outputs/sequential_attack_lcc.png",
+            dpi=200, bbox_inches="tight")
+plt.show()
+```
+
+---
+
+# 3. Results
+
+## 3.1 Descriptive Structure of the Alliance Network
+
+```{python}
+#| label: results-stats
+#| code-summary: "Display basic statistics"
+
+stats_result = pd.read_csv("outputs/basic_stats_alliance_network.csv")
+stats_result
+```
+
+The alliance network reveals a **sparse** structure (low density), indicating that only a small fraction of possible alliances exist. Cartels are selective in their alliance formation — this is not a random web of cooperation but a structured system where partnerships are strategically chosen.
+
+The diameter and average path length of the largest connected component provide insight into how "close" cartels are to each other through chains of alliances. A moderate diameter suggests that while not all cartels are directly connected, information or coordination can flow across the network in relatively few steps — a hallmark of small-world structure that enables rapid coordination despite sparse connectivity.
+
+## 3.2 Central Actors
+
+```{python}
+#| label: results-centrality
+#| code-summary: "Display centrality results"
+
+print("=== Top 10 Degree Centrality ===")
+display(pd.read_csv("outputs/top10_degree_centrality.csv"))
+
+print("\n=== Top 10 Betweenness Centrality ===")
+display(pd.read_csv("outputs/top10_betweenness_centrality.csv"))
+```
+
+The centrality analysis reveals the power structure of the cartel alliance network:
+
+- **High-degree actors** (many alliances) are the **hubs** of the cooperation network. These organizations maintain simultaneous partnerships with many other groups, giving them wide reach and influence. Their removal severs many connections at once.
+- **High-betweenness actors** are the **brokers** or **bridges** — organizations that control indirect connectivity between groups that would otherwise be disconnected. Even with moderate degree, a high-betweenness node is structurally irreplaceable because it lies on many shortest paths.
+- **Overlap between the two rankings** identifies the most strategically critical nodes. An organization that is both a hub (many allies) and a bridge (only path between clusters) is the single most valuable target for network disruption.
+- The organizational type column reveals whether structural importance correlates with scale: do National Cartels dominate both rankings, or do some Regional or Local organizations serve as critical bridges?
+
+## 3.3 Organizational Profiles and Network Position
+
+The BACRIM ecosystem is diverse: it includes sophisticated national trafficking organizations alongside small local cells. The organizational profile analysis reveals:
+
+- **Drug trafficking** dominates as the primary specialty, but organizations also specialize in extortion, fuel theft, and drug retail — reflecting the diversification of Mexican organized crime beyond narcotics.
+- **Methamphetamine and fentanyl** are the most common drug portfolio entries, consistent with the DEA's 2024–2025 assessments identifying these as the primary threats.
+- The **geographic distribution** shows concentration in certain states (reflecting territorial control) and a mix of same-state and cross-state alliances (reflecting supply chain logistics).
+
+## 3.4 Signed Network Visualization
+
+The signed network visualization (@fig-signed-network) uses a Fruchterman–Reingold force-directed layout, with nodes colored by **organization type**. **Green edges** represent alliances and **red dashed edges** represent rivalries. Node size is proportional to total degree in the signed graph.
+
+Key observations:
+
+- **National Cartels** (red nodes) occupy central positions with many connections, as expected from their scale and reach.
+- **Regional and Local groups** (orange, blue) cluster around the national hubs, often connected to the broader network only through their alliance with a major cartel.
+- Clusters of allied cartels are visible, with rivalry ties often bridging different clusters — consistent with structural balance theory (Heider, 1946; Cartwright & Harary, 1956).
+- The network is far from random — there is clear structural organization with identifiable communities.
+
+## 3.5 Null Model Comparison (ER vs BA vs Real)
+
+```{python}
+#| label: results-comparison
+#| code-summary: "Display model comparison"
+
+comparison_result = pd.read_csv("outputs/random_graph_model_comparison.csv")
+comparison_result
+```
+
+**Interpretation:**
+
+- If the real clustering coefficient $C$ is much higher than the Erdős–Rényi $C$, this indicates that alliances are **more locally clustered** than expected under a purely random process — allies of allies tend to also be allies. This is consistent with **triadic closure**: once two cartels share a mutual ally, there is structural pressure (trust, operational convenience, shared information) for them to form a direct alliance.
+- If the real average path length $L$ is closer to the Barabási–Albert model than to ER, this suggests a possible **hub-driven organization** consistent with preferential attachment dynamics — new or expanding organizations preferentially ally with already-powerful hubs.
+- Deviations from **both** null models argue for **domain-specific mechanisms** (e.g., geographic proximity, shared rivals driving alliances, complementary criminal specializations) that cannot be captured by purely structural random graph models.
+- The small-world analysis (Section 2.4.3) provides a quantitative test: a small-world coefficient $\sigma > 1$ confirms that the alliance network has the distinctive combination of high local clustering and short global paths.
+
+## 3.6 Degree Distribution Evidence
+
+The log-log degree distribution plot (@fig-degree-dist) reveals whether the alliance network exhibits **heavy-tailed behavior** consistent with scale-free intuition:
+
+- If points align roughly linearly in log-log space, this is suggestive (though not definitive proof) of power-law behavior $P(k) \sim k^{-\gamma}$.
+- The Barabási–Albert model produces a reference power-law distribution with $\gamma = 3$ for comparison.
+- The Erdős–Rényi model produces a Poisson distribution that appears as a roughly symmetric peak in log-log space.
+- Deviations from perfect linearity are expected given the small network size ($N \approx 100$). Clauset, Shalizi & Newman (2009) caution that power-law identification requires larger samples; our analysis is therefore suggestive rather than conclusive.
+
+## 3.7 Predicted Future Alliances
+
+```{python}
+#| label: results-predictions
+#| code-summary: "Display top 15 predicted alliances"
+
+pred_result = pd.read_csv("outputs/top15_predicted_future_alliances.csv")
+pred_result[["Rank", "Name_A", "Type_A", "Name_B", "Type_B", "Jaccard", "Adamic_Adar"]]
+```
+
+The highest-ranked pairs are those with the greatest **neighborhood overlap**:
+
+- **Jaccard coefficient**: Measures the proportion of shared neighbors relative to the total neighborhood size. High Jaccard pairs share many mutual allies relative to their total alliance portfolios — the "friends of friends" principle in its purest form.
+- **Adamic-Adar index**: Weights shared neighbors by the inverse log of their degree, giving more credit to rare/exclusive shared connections. A shared ally that is itself highly selective (few alliances) provides stronger evidence of structural proximity than a shared ally that is allied with everyone.
+
+These pairs represent the most topologically plausible future alliances based on network topology. In the criminal network context, Berlusconi et al. (2016) showed that such topological predictions in Mafia networks were later confirmed by intelligence agencies — validating this approach for identifying hidden or emerging connections.
+
+The prediction score distributions (@fig-link-pred-dist) show that the vast majority of non-edge pairs have zero or near-zero scores (no shared neighbors), while the top-predicted pairs are clear outliers — their high scores reflect genuine structural proximity rather than noise.
+
+## 3.8 Network Resilience — Targeted Node Removal
+
+### Single Node Removal: CJNG (El Mencho)
+
+```{python}
+#| label: results-removal
+#| code-summary: "Display node removal impact"
+
+removal_result = pd.read_csv("outputs/node_removal_impact_cjng.csv")
+removal_result
+```
+
+The removal of CJNG — the highest-degree and highest-betweenness node — produces measurable structural disruption:
+
+- **Edge loss**: All alliance edges connected to CJNG are severed, directly reducing connectivity. The number of edges lost equals CJNG's degree — each representing an alliance that no longer exists.
+- **Component fragmentation**: Some former CJNG allies that were connected to the main network only through CJNG become disconnected, increasing the number of connected components. These are the organizations identified as "new isolates" — cartels that had no other alliances besides CJNG.
+- **Increased path lengths**: Remaining nodes that previously relied on CJNG as a shortcut now face longer paths to reach each other. This means coordination becomes slower and more difficult across the surviving network.
+- **Clustering impact**: The change in clustering coefficient reveals whether CJNG's neighborhood was internally well-connected (resilient — allies are also allied with each other, so removing CJNG does not disconnect them) or dependent on CJNG as a hub (fragile — allies had no direct connections to each other and relied entirely on CJNG as intermediary).
+
+The side-by-side visualization (@fig-node-removal) shows the "hole" left by CJNG's removal, with former allies (orange) now potentially disconnected or peripheralized.
+
+### Sequential Targeted Attack
+
+```{python}
+#| label: results-sequential
+#| code-summary: "Display sequential attack results"
+
+attack_result = pd.read_csv("outputs/sequential_attack_log.csv")
+attack_result
+```
+
+The sequential attack analysis (@fig-sequential-attack) reveals the **fragility of the alliance network to targeted hub removal**:
+
+- Each successive removal of the highest-degree node causes further fragmentation, as shown by the increasing number of connected components.
+- The LCC size drops progressively, demonstrating that the network's connectivity depends disproportionately on a small number of hubs.
+- This is consistent with the theoretical prediction that **scale-free-like networks are robust to random failure but fragile to targeted attacks** (Albert, Jeong & Barabási, 2000).
+- The fragmentation curve is informative for law enforcement strategy: it shows the **marginal return** of each successive disruption operation. The steepest drops in LCC size identify the most impactful targets.
+
+This analysis directly validates the real-world law enforcement strategy observed in 2024–2026: systematically targeting the most central actors (El Mencho, El Mayo, Los Cuinis leadership) produces cascading network disruption far exceeding what random arrests would achieve.
+
+---
+
+# 4. Conclusion
+
+## 4.1 Answers to Research Questions
+
+**RQ1:** The cartel alliance network is sparse but structurally organized, with a few highly connected hubs (notably CJNG and Sinaloa) dominating the connectivity landscape. The network is not a single cohesive block but rather a multi-component structure with distinct clusters. Organizational type (National Cartel, Regional, Local) correlates with network position: national cartels occupy central hub and broker roles, while local groups and cells tend to be peripheral.
+
+**RQ2:** The observed alliance network departs significantly from both Erdős–Rényi and Barabási–Albert null models. Higher clustering than ER suggests that triadic closure (allies of allies becoming allies) is a key mechanism — trust and information sharing among criminal organizations propagate through closed triangles rather than open chains. The degree distribution analysis reveals heterogeneity in connectivity that is inconsistent with uniform random attachment but shows some features compatible with preferential attachment (hub dominance).
+
+**RQ3:** Link prediction identifies specific cartel pairs with high topological similarity (shared alliance neighborhoods) that are currently not allied. These represent the most structurally plausible candidates for future alliance formation. The Jaccard and Adamic-Adar metrics provide complementary perspectives: Jaccard identifies pairs with high proportional overlap, while Adamic-Adar identifies pairs connected through exclusive intermediaries.
+
+**RQ4:** Targeted removal of the most central node (CJNG) causes significant structural disruption: edge loss, component fragmentation, and increased path lengths. Sequential removal of the top-5 hubs produces a progressive fragmentation curve consistent with scale-free vulnerability theory. This validates the "kingpin strategy" from a network science perspective while also highlighting the potential for increased violence during the fragmentation process.
+
+## 4.2 Substantive Interpretation
+
+The network structure suggests that the Mexican cartel ecosystem is organized around a few **dominant hubs** that maintain extensive alliance portfolios. **Brokerage roles** (high betweenness) highlight organizations that facilitate coordination or resource flows between otherwise disconnected groups. The coexistence of alliance and rivalry ties in the signed network reflects the dual nature of cartel interaction: cooperation for mutual benefit alongside competition for territory and markets.
+
+The enriched specialty data reveals that the alliance network connects organizations with diverse criminal portfolios — national drug trafficking cartels ally with local extortion groups, toll-collectors, and cells, suggesting **functional complementarity** in alliance formation. The geographic analysis shows a mix of local (same-state) and logistic (cross-state) alliances, reflecting both territorial cooperation and supply chain coordination.
+
+The temporal crime trends (2012–2021) provide crucial context: the BACRIM 2020 network was captured during a historically violent period, with nearly 37,000 annual homicides. The escalation of violence since 2017 coincides with the fragmentation of major cartels — precisely the kind of structural disruption our network analysis models. This suggests that network fragmentation and violence are not merely correlated but mechanistically linked: removing hubs creates power vacuums that generate conflict among competing successors.
+
+## 4.3 Limitations
+
+- **Static snapshot** (2020) rather than longitudinal dynamics — we cannot observe alliance formation or dissolution over time.
+- **Topological prediction only** — no geographic, economic, or law enforcement covariates are incorporated into the link prediction model. Geographic proximity, shared drug routes, and complementary specializations would likely improve predictions.
+- **Potential data incompleteness** — covert relationships may be underreported due to the nature of criminal intelligence. Sparrow (1991) identified this as a fundamental challenge of criminal network analysis.
+- **Organization-level granularity** — we treat each cartel as a unitary actor, but internal factions (e.g., Los Chapitos vs Los Mayos within Sinaloa) may have distinct alliance structures.
+- **Unweighted topology** — our algorithms treat all alliances equally, ignoring the weight (number of states where the alliance is active) that could indicate alliance strength.
+
+## 4.4 Future Work
+
+- **Temporal network analysis** over multiple years to track alliance evolution and test whether our link predictions materialize.
+- **Signed-link prediction models** that incorporate rivalry directly into the prediction framework — predicting both future alliances and future rivalries.
+- **ERGM/SBM/community-detection extensions** for more sophisticated structural modeling. Stochastic Block Models (SBMs) could identify latent community structure and test whether alliances follow a block pattern (e.g., by region or by specialty).
+- **Weighted analysis** incorporating alliance strength (number of shared states) into centrality and prediction algorithms.
+- **Geographic and attribute-based prediction** combining network topology with node covariates (state, specialty, drug portfolio) for richer link prediction models.
+
+## 4.5 Connection to Recent Events (2024–2026) {#connection-to-recent-events-20242026}
+
+Although the BACRIM 2020 dataset is a static snapshot, events since its publication provide striking real-world validation of the network patterns identified in this analysis. The following timeline connects our structural findings to major developments in the Mexican organized-crime landscape.
+
+### The Fall of the Sinaloa Cartel's Leadership
+
+**Ismael "El Mayo" Zambada**, co-founder of the Sinaloa Cartel, was **arrested in Texas on July 25, 2024**, reportedly lured to the US by Joaquín Guzmán López (son of El Chapo). In August 2025, Zambada **pled guilty** to narcotics and money laundering charges in a Brooklyn federal court. In our dataset, the Sinaloa Cartel (node N10013) occupies a **central hub position** with the second-highest degree centrality. The removal of its top leader represents a **targeted attack on a high-centrality node** — precisely the type of disruption that network theory predicts will fragment an organization's alliance structure.
+
+The arrest triggered a **civil war within the Sinaloa Cartel** between "Los Chapitos" (Guzmán sons' faction, which orchestrated the abduction) and Zambada loyalists ("Los Mayos"). This internal fragmentation — a high-centrality hub splitting into competing subgroups — illustrates how leadership disruption cascades through alliance networks. From a network perspective, this transforms one high-degree node into multiple competing lower-degree nodes, potentially creating new rivalry edges where alliance edges previously existed.
+
+### The Killing of "El Mencho" and CJNG's Crisis
+
+On **February 22, 2026**, Mexican military forces killed **Nemesio Oseguera Cervantes ("El Mencho")**, the founder and leader of CJNG, in Jalisco. CJNG (node N10025) is the **highest-degree and highest-betweenness node** in the 2020 alliance network — it holds the most alliances and serves as the most critical bridge between otherwise disconnected cartel clusters.
+
+From a network science perspective, El Mencho's elimination represents a **targeted removal of the most central node** — precisely the simulation we performed in Section 2.6. Theory predicts that such a targeted attack on a hub-dominated network should cause:
+
+- **Fragmentation** of the alliance structure as peripheral allies lose their connector
+- **Increased path lengths** between remaining nodes that relied on CJNG as a broker
+- **Potential cascading defections** as satellite groups realign with surviving hubs
+
+Indeed, within hours of El Mencho's death, suspected CJNG operatives launched **revenge attacks** in Jalisco (vehicle bombs, transit blockades), and the US Consulate in Guadalajara issued a shelter-in-place order — suggesting rapid destabilization consistent with hub removal in a centralized network.
+
+### US Designation as Terrorist Organizations (February 2025)
+
+In **February 2025**, the United States designated both **CJNG and the Sinaloa Cartel as Foreign Terrorist Organizations (FTOs)**. In the 2020 network, these two organizations are the dominant hubs with the highest centrality scores, and they share a **rivalry tie with weight 7** (the maximum rivalry weight in the dataset, indicating antagonism across 7 Mexican states).
+
+The terrorist designation triggered **mass extraditions**: 29 cartel figures were extradited in February 2025 and another 26 in August 2025. This represents a systematic strategy of **targeting high-centrality nodes and their immediate neighbors** — an approach consistent with optimal network disruption strategies described in the literature (Duijn, Kashirin & Sloot, 2014).
+
+### Validation of Alliance-Network Structure
+
+The dismantling of **Los Cuinis** — CJNG's most important ally (alliance weight = 6 in our dataset) — provides further validation. Los Cuinis leader **Abigael González Valencia** was extradited to the US in August 2025 and sentenced to 30 years. In network terms, this removes a **high-weight edge** from the hub (CJNG), further weakening its alliance portfolio before the eventual elimination of El Mencho himself.
+
+Additionally, in **February 2026**, a **$10 million bounty** was placed on Sinaloa Cartel leaders operating in Baja California, while the Sinaloa civil war continued to produce hundreds of casualties in Sinaloa state — showing that the rival factions formed after Zambada's arrest remain in active conflict.
+
+### Network Science Implications
+
+These developments validate several structural predictions from our analysis:
+
+| **Network Finding (2020)** | **Real-World Event (2024–2026)** |
+|:---|:---|
+| CJNG is the highest-degree/betweenness hub | El Mencho killed → immediate destabilization, revenge attacks |
+| Sinaloa is the second-highest hub | Zambada arrested → cartel civil war, factional fragmentation |
+| CJNG–Sinaloa rivalry weight = 7 (maximum) | Both designated as FTOs; competition escalates to open warfare |
+| Los Cuinis is CJNG's top ally (weight = 6) | Los Cuinis leader extradited and sentenced to 30 years |
+| Hub-dominated structure predicts fragility to targeted attacks | Mass extraditions (55+ figures) cause cascading disruption |
+| Link prediction identifies potential future alliances | Post-fragmentation realignment among satellite groups ongoing |
+
+This temporal validation underscores the **predictive power of static network analysis**: even a single snapshot can reveal structural vulnerabilities that manifest years later when key nodes or edges are disrupted. It also highlights the practical relevance of centrality metrics and hub-identification for **law enforcement strategy** — the nodes our analysis flagged as most central are precisely the ones targeted in subsequent operations.
+
+---
+
+# 5. References
+
+- Adamic, L. A., & Adar, E. (2003). Friends and neighbors on the web. *Social Networks*, 25(3), 211–230.
+- Albert, R., Jeong, H., & Barabási, A.-L. (2000). Error and attack tolerance of complex networks. *Nature*, 406(6794), 378–382.
+- Barabási, A.-L., & Albert, R. (1999). Emergence of scaling in random networks. *Science*, 286(5439), 509–512.
+- Berlusconi, G., Ferrara, E., Ferreri, C., & Ferraro, G. (2016). Link prediction in criminal networks: A tool for criminal intelligence analysis. *PLoS ONE*, 11(4), e0154244.
+- Brandes, U. (2001). A faster algorithm for betweenness centrality. *Journal of Mathematical Sociology*, 25(2), 163–177.
+- Calderón, G., Robles, G., Díaz-Cayeros, A., & Magaloni, B. (2015). The beheading of criminal organizations and the dynamics of violence in Mexico. *Journal of Conflict Resolution*, 59(8), 1455–1485.
+- Callaway, D. S., Newman, M. E. J., Strogatz, S. H., & Watts, D. J. (2000). Network robustness and fragility: Percolation on random graphs. *Physical Review Letters*, 85(25), 5468.
+- Cartwright, D., & Harary, F. (1956). Structural balance: A generalization of Heider's theory. *Psychological Review*, 63(5), 277–293.
+- Clauset, A., Shalizi, C. R., & Newman, M. E. J. (2009). Power-law distributions in empirical data. *SIAM Review*, 51(4), 661–703.
+- Coscia, M., & Rios, V. (2012). Knowing where and how criminal organizations operate using web content. In *Proceedings of the 21st ACM International Conference on Information and Knowledge Management* (pp. 1412–1421).
+- DEA (2024). *National Drug Threat Assessment 2024*. U.S. Drug Enforcement Administration.
+- DEA (2025). *National Drug Threat Assessment 2025*. U.S. Drug Enforcement Administration.
+- Duijn, P. A. C., Kashirin, V., & Sloot, P. M. A. (2014). The relative ineffectiveness of criminal network disruption. *Scientific Reports*, 4, 4238.
+- Erdős, P., & Rényi, A. (1959). On random graphs I. *Publicationes Mathematicae Debrecen*, 6, 290–297.
+- Heider, F. (1946). Attitudes and cognitive organization. *The Journal of Psychology*, 21(1), 107–112.
+- Leskovec, J., Huttenlocher, D., & Kleinberg, J. (2010). Predicting positive and negative links in online social networks. In *Proceedings of the 19th International Conference on World Wide Web* (pp. 641–650).
+- Liben-Nowell, D., & Kleinberg, J. (2007). The link-prediction problem for social networks. *Journal of the American Society for Information Science and Technology*, 58(7), 1019–1031.
+- Morselli, C. (2009). *Inside Criminal Networks*. Springer.
+- Newman, M. E. J. (2010). *Networks: An Introduction*. Oxford University Press.
+- Prieto-Curiel, R., & Campedelli, G. M. (2023). BACRIM 2020: A signed network of alliances and rivalries among Mexican criminal organizations. *Dryad Digital Repository*.
+- Sparrow, M. K. (1991). The application of network analysis to criminal intelligence. *Social Networks*, 13(3), 251–274.
+- Watts, D. J., & Strogatz, S. H. (1998). Collective dynamics of 'small-world' networks. *Nature*, 393(6684), 440–442.
+
+---
+
+# 6. Reproducibility Appendix
+
+All code is embedded in this Quarto document. To reproduce the results:
+
+```bash
+cd Project/
+quarto render BACRIM_Report.qmd
+```
+
+**Data files required:**
+
+| File | Description | Source |
+|------|-------------|--------|
+| `BACRIM2020_Nodes.csv` | 150 cartel organizations | Prieto-Curiel & Campedelli (2023) |
+| `BACRIM2020_Alliances.csv` | Alliance edges with weights | Prieto-Curiel & Campedelli (2023) |
+| `BACRIM2020_Rivals.csv` | Rivalry edges with weights | Prieto-Curiel & Campedelli (2023) |
+| `BACRIM2020_Nodes_With_Specialties.csv` | Enriched nodes with type, specialty, drugs | DEA, CRS, InSight Crime |
+| `Cartel_Specialties.csv` | Specialty lookup table | Compiled from multiple sources |
+| `Trends2012_2021.csv` | Annual homicides, missing, arrests | INEGI |
+
+**Output files generated:**
+
+| File | Description |
+|------|-------------|
+| `outputs/crime_trends_2012_2021.png` | Mexican crime trends 2012–2021 |
+| `outputs/organizational_profiles.png` | Organizational type, specialty, and drug distributions |
+| `outputs/basic_stats_alliance_network.csv` | Basic network metrics |
+| `outputs/top10_degree_centrality.csv` | Top 10 nodes by degree centrality |
+| `outputs/top10_betweenness_centrality.csv` | Top 10 nodes by betweenness centrality |
+| `outputs/centrality_by_type.png` | Centrality distributions by organization type |
+| `outputs/geographic_distribution.png` | Geographic distribution and cross-state alliances |
+| `outputs/signed_network_by_type.png` | Signed network visualization by organization type |
+| `outputs/random_graph_model_comparison.csv` | ER vs BA vs Real comparison |
+| `outputs/degree_distribution_loglog.png` | Degree distribution (log-log) |
+| `outputs/top15_predicted_future_alliances.csv` | Top 15 predicted future alliances |
+| `outputs/link_prediction_distributions.png` | Jaccard and Adamic-Adar score distributions |
+| `outputs/node_removal_impact_cjng.csv` | Before/after metrics for CJNG removal |
+| `outputs/node_removal_before_after.png` | Side-by-side network visualization |
+| `outputs/sequential_attack_log.csv` | Sequential hub removal log |
+| `outputs/sequential_attack_lcc.png` | LCC shrinkage and component count under targeted attack |

@@ -1,0 +1,9 @@
+Metric,Value
+Nodes (N),91.0
+Edges (E),91.0
+Density,0.0222
+Global Clustering Coefficient (C),0.0356
+Diameter (LCC),8.0
+Avg Path Length (LCC),3.2955
+Connected Components,8.0
+Largest Component Size,50.0

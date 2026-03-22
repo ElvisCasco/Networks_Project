@@ -1,0 +1,7 @@
+Step,Removed,Removed_Type,Nodes_Left,Edges_Left,Components,LCC_Size
+0,(none),,91,91,8,50
+1,CJNG (deg=28),National Cartel,67,63,10,26
+2,Sinaloa (deg=21),National Cartel,50,42,10,11
+3,NFMichoacana (deg=5),Regional Cartel,45,37,10,11
+4,UTepito (deg=5),Local,41,32,11,11
+5,Chapitos (deg=5),Faction,36,27,11,11

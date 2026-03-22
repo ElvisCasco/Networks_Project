@@ -1,0 +1,4 @@
+Network,Nodes,Edges,Clustering_C,Avg_Path_Length_L,LCC_Size,Density
+Real (Alliance),91,91,0.0356,3.2955,50,0.0222
+Erdős–Rényi,91,77,0.0,6.7467,62,0.0188
+Barabási–Albert,91,90,0.0,4.4767,91,0.022

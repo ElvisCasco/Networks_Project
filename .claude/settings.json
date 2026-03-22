@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(python join_specialties.py)",
+      "Bash(\"/c/Program Files/Python313/python.exe\" join_specialties.py)",
+      "Read(//c/EC/BSE/DSDM/Term 2/E21D009_Networks Concepts and Algorithms/PS3/**)",
+      "Bash(quarto render:*)",
+      "Bash(echo \"EXIT: $?\")",
+      "Read(//tmp/**)",
+      "Bash(jupyter kernelspec:*)",
+      "Bash(python -c \"import sys; print\\(sys.version\\); print\\(sys.executable\\)\")",
+      "Read(//c/Users/ecasc/AppData/Local/Programs/Python/**)",
+      "Bash(\"C:/Users/ecasc/AppData/Local/Programs/Python/Python311/python.exe\" -c \"import sys; print\\(sys.version\\); import networkx; print\\(''networkx ok''\\); import pandas; print\\(''pandas ok''\\); import matplotlib; print\\(''matplotlib ok''\\)\")",
+      "Bash(\"C:/Users/ecasc/AppData/Local/Programs/Python/Python310/python.exe\" -c \"import sys; print\\(sys.version\\); import networkx; print\\(''networkx ok''\\); import pandas; print\\(''pandas ok''\\); import matplotlib; print\\(''matplotlib ok''\\)\")",
+      "Bash(\"C:/Users/ecasc/AppData/Local/Programs/Python/Python314/python.exe\" -c \"import networkx; print\\(''networkx ok''\\); import pandas; print\\(''pandas ok''\\); import matplotlib; print\\(''matplotlib ok''\\)\")",
+      "Bash(where conda:*)",
+      "Bash(conda env:*)",
+      "Read(//c/EC/BSE/DSDM/Term 2/E21D009_Networks Concepts and Algorithms/Project/$USERPROFILE/AppData/Local/Programs/Python/Python314/**)",
+      "Bash(\"C:/Users/ecasc/AppData/Local/Programs/Python/Python314/Scripts/jupyter-kernelspec.exe\" list:*)",
+      "Read(//c/EC/BSE/DSDM/Term 2/E21D009_Networks Concepts and Algorithms/Project/$USERPROFILE/AppData/Roaming/jupyter/**)",
+      "Read(//c/EC/BSE/DSDM/Term 2/E21D009_Networks Concepts and Algorithms/Project/$APPDATA/jupyter/**)",
+      "Read(//c/EC/BSE/DSDM/Term 2/E21D009_Networks Concepts and Algorithms/Project/$APPDATA/jupyter/kernels/python313/**)",
+      "Bash(\"C:/Program Files/Python313/python.exe\" -c \"import sys; print\\(sys.version\\); import networkx; print\\(''networkx ok''\\); import pandas; print\\(''pandas ok''\\); import matplotlib; print\\(''matplotlib ok''\\)\")",
+      "Bash(QUARTO_PYTHON=\"C:/Program Files/Python313/python.exe\" quarto render BACRIM_Report.qmd --to html)",
+      "Bash(QUARTO_PYTHON=\"C:/Program Files/Python313/python.exe\" quarto render BACRIM_Report.qmd --to pdf)"
+    ]
+  }
+}

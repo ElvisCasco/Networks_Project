@@ -1,0 +1,11 @@
+Rank,Node_A,Name_A,Node_B,Name_B,Jaccard,Adamic_Adar
+1,N10077,"Reina del Sur, Cecilia “V""",N10065,"Juan L. (Moco), líder huachicolero",1.0,1.4427
+2,N10114,Páez,N10070,Barredora 24/7,1.0,1.4427
+3,N10136,Mando Sur Gente Nueva,N10083,Ántrax,1.0,1.4427
+4,N10132,Treviño,N10147,Tropa del Infierno,1.0,0.7213
+5,N10087,Blancos de Troya,N10003,Caballeros Templarios,1.0,0.6213
+6,N10087,Blancos de Troya,N10140,Paco Pacas,1.0,0.6213
+7,N10087,Blancos de Troya,N10107,Mayas,1.0,0.6213
+8,N10140,Paco Pacas,N10003,Caballeros Templarios,1.0,0.6213
+9,N10140,Paco Pacas,N10107,Mayas,1.0,0.6213
+10,N10107,Mayas,N10003,Caballeros Templarios,1.0,0.6213

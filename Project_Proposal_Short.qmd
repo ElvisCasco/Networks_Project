@@ -1,0 +1,68 @@
+---
+title: "Latent Pathways and Post-Disruption Reorganization in Mexican Cartel Networks"
+subtitle: "Project Proposal — Networks I: Concepts and Algorithms"
+author:
+  - Xianrui Cao
+  - Elvis Casco
+  - Cherryl Chico
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=0.85in
+    fontsize: 10pt
+    linestretch: 1.05
+    colorlinks: true
+  html:
+    theme: cosmo
+    toc: false
+---
+
+## Project Configuration
+
+Kingpin strategies assume that removing central cartel actors fragments criminal organizations. However, some recent cases in Mexico say otherwise: removals triggered violence spikes and reconfiguration, not collapse (Calderón et al., 2015; Duijn et al., 2014). We want to test if cartel networks contain *latent relational pathways* — shared enemies, brokerage alternatives, overlapping neighborhoods — that activate when central actors are removed. The question is not only whether disruption fragments a network, but whether pre-existing latent structure conditions how it reorganizes.
+
+Using BACRIM2020 dataset(Prieto-Curiel & Campedelli, 2023) containing 150 Mexican criminal factions with weighted alliance and rivalry ties, we want to model cartel relations as a signed network and test if pre-existing latent relational pathways condition the likely form of post-disruption reorganization after the removal of structurally central actors.
+
+This analysis could be relevant in the context of understanding how criminal networks adapt to targeted interventions. If "enemy-of-my-enemy" dynamics generate new coalitions after kingpin removals, understanding latent structure before intervention enables smarter targeting. 
+
+Two real-world anchors motivate the design: the post-2017 Sinaloa fragmentation after El Chapo's extradition, and the recent death of "El Mencho" (CJNG), whose node is the most connected in the dataset: 28 alliances and 29 rivalries. This is the strongest test for whether latent pathways predict reconfiguration.
+
+## Planification and Methodology
+
+The analysis has six steps:
+
+1. Signed Network Construction: using the dataset, we can build alliance (+1) and rivalry (−1) layers on the same 150 nodes.
+
+2. Central Actor Identification: the next step is to estimate degree, betweenness, and eigenvector centrality plus structural-hole measures. We could focus on structures whose removal exposes dormant coordination alternatives (Morselli, 2009; Bright et al., 2015).
+
+3. Latent Pathway Inference (Pre-Disruption): for each non-adjacent dyad, we can compute a composite latent score from Jaccard similarity and Adamic-Adar overlap in alliance/rivalry neighborhoods (Adamic & Adar, 2003; Liben-Nowell & Kleinberg, 2007), community co-membership, and short indirect path length.
+
+4. Node Removal Simulation: We plan to simulate the removal of central nodes (e.g., CJNG, Sinaloa) and measure fragmentation, component size, bridge loss, and signed triad balance (Albert et al., 2000). Using this simulation we can estimate effects of targeted intervention.
+
+5. Counterfactual Reconstruction: the plan is to add new ties *only* where pre-removal latent scores are high (Leskovec et al., 2010). This approach assesses whether recombination reduces fragmentation, restores brokerage, or generates new coalitional blocs.
+
+6. Validation via Link Prediction: we can withhold observed ties, recalculate latent scores from the remaining structure, check whether withheld ties rank higher than unrelated dyads. This step establishes the latent score as a credible proxy for unobserved relational potential.
+
+## Challenges and How to Overcome Them
+
+| Challenge | Mitigation |
+|---|---|
+| Cross-sectional data: cannot observe actual post-disruption dynamics. | Frame results as *counterfactual plausibility*, not causal claims. Supplement with qualitative comparison to documented Sinaloa/CJNG reconfiguration. |
+| Partial observability: latent edges are unobserved by definition. | The link-prediction validation (Step 6) demonstrates the score recovers artificially hidden edges, establishing it as a credible proxy. |
+| Signed network complexity: standard metrics assume unsigned graphs. | Compute alliance- and rivalry-specific versions of each metric separately; use signed triad balance (Cartwright & Harary, 1956) to validate structural coherence. |
+| Small N (~150 nodes): limited statistical power. | Use rank-based metrics (AUC) robust at smaller scales and repeated random splits. |
+
+## Key References
+
+- Adamic, L.A. & Adar, E. (2003). Friends and neighbors on the Web. *Social Networks*, 25(3), 211–230. [doi:10.1016/S0378-8733(03)00009-1](https://doi.org/10.1016/S0378-8733(03)00009-1)
+- Albert, R., Jeong, H. & Barabási, A.-L. (2000). Error and attack tolerance of complex networks. *Nature*, 406, 378–382. [doi:10.1038/35019019](https://doi.org/10.1038/35019019)
+- Bright, D., Greenhill, C., Reynolds, M., Ritter, A. & Morselli, C. (2015). The use of actor-level attributes and centrality measures to identify key actors. *Journal of Contemporary Criminal Justice*, 31(3), 262–280. [doi:10.1177/1043986214553377](https://doi.org/10.1177/1043986214553377)
+- Calderón, G., Robles, G., Díaz-Cayeros, A. & Magaloni, B. (2015). The beheading of criminal organizations and the dynamics of violence in Mexico. *Journal of Conflict Resolution*, 59(8), 1455–1485. [doi:10.1177/0022002715587053](https://doi.org/10.1177/0022002715587053)
+- Cartwright, D. & Harary, F. (1956). Structural balance: A generalization of Heider's theory. *Psychological Review*, 63(5), 277–293. [doi:10.1037/h0046049](https://doi.org/10.1037/h0046049)
+- Duijn, P.A.C., Kashirin, V. & Sloot, P.M.A. (2014). The relative ineffectiveness of criminal network disruption. *Scientific Reports*, 4, 4238. [doi:10.1038/srep04238](https://doi.org/10.1038/srep04238)
+- Leskovec, J., Huttenlocher, D. & Kleinberg, J. (2010). Predicting positive and negative links in online social networks. *Proceedings of WWW 2010*, 641–650. [doi:10.1145/1772690.1772756](https://doi.org/10.1145/1772690.1772756)
+- Liben-Nowell, D. & Kleinberg, J. (2007). The link-prediction problem for social networks. *JASIST*, 58(7), 1019–1031. [doi:10.1002/asi.20591](https://doi.org/10.1002/asi.20591)
+- Lü, L. & Zhou, T. (2011). Link prediction in complex networks: A survey. *Physica A*, 390(6), 1150–1170. [doi:10.1016/j.physa.2010.11.027](https://doi.org/10.1016/j.physa.2010.11.027)
+- Morselli, C. (2009). *Inside Criminal Networks*. Springer. [doi:10.1007/978-0-387-09526-4](https://doi.org/10.1007/978-0-387-09526-4)
+- Prieto-Curiel, R. & Campedelli, G.M. (2023). Mexican cartels form a network of alliances and rivalries. *Royal Society Open Science*, 10, 221507. [doi:10.1098/rsos.221507](https://doi.org/10.1098/rsos.221507)
+- Wandelt, S., Sun, X., Feng, D., Zanin, M. & Havlin, S. (2018). A comparative analysis of approaches to network-dismantling. *Scientific Reports*, 8, 13513. [doi:10.1038/s41598-018-31902-8](https://doi.org/10.1038/s41598-018-31902-8)
