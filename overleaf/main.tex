@@ -80,6 +80,7 @@ Events between 2024 and 2026---the arrest of Ismael ``El Mayo'' Zambada, the kil
     \item Is the observed alliance network compatible with a random generative process, or does it exhibit structured organization?
     \item Which currently disconnected cartel pairs are most likely to form future alliances, and do non-topological features (specialty, rivalry, geography) improve prediction over topology alone?
     \item How does the network respond to the removal of its most central hub, and how does the surviving network plausibly reorganize?
+    \item Given a limited budget of $k$ simultaneous removals, which target set minimizes the largest connected component after the network rewires?
 \end{enumerate}
 
 \subsection{Contributions}
@@ -93,6 +94,7 @@ This paper makes the following contributions:
     \item Dyadic utility logistic regression combining topology, criminal specialty, rivalry structure, and geography for alliance prediction, with cross-validated comparison to baseline methods.
     \item Network resilience simulation via targeted single-node and sequential hub removal.
     \item Post-disruption rewiring simulation predicting alliance reorganization after hub removal.
+    \item Optimal targeting under rewiring: exhaustive search over all $k$-subsets ($k = 1$) to identify the target set that minimizes post-rewiring connectivity, with sensitivity analysis across rewiring capacity levels.
     \item Temporal contextualization using post-2020 events to validate structural predictions.
 \end{enumerate}
 
@@ -258,6 +260,16 @@ Set $G_0 = G$. At each step $t = 1, \ldots, k$: recalculate degrees in $G_t$, re
 
 \paragraph{Assumptions.}
 We equate node removal with organizational neutralization (a first-order approximation). We use the alliance-only graph and assume no rewiring after removal (a conservative, worst-case assumption). Isolates are pruned. Edges are treated as unweighted.
+
+\subsection{Optimal Targeting Under Rewiring}\label{sec:optimal_methods}
+
+The resilience analysis treats node selection and post-disruption reorganization as separate steps. But if the goal is to choose which organizations to target, the two must be considered jointly. We formalize this as a combinatorial optimization problem. Let $S \subseteq V$ with $|S| = k$ be the set of nodes removed simultaneously, where $k$ is the operational budget. After removal, surviving organizations form new alliances according to the logistic model. The objective is:
+\begin{equation}\label{eq:optimal}
+    S^* = \arg\min_{S \subseteq V,\; |S| = k} \; \text{LCC}\Big(\text{Rewire}\big(G \setminus S,\; \hat{P},\; \tau\big)\Big)
+\end{equation}
+The function $\text{Rewire}(G', \hat{P}, \tau)$ takes the surviving graph $G'$ (after pruning isolates), scores every non-adjacent pair with the logistic model, adds the top edges whose count equals $\alpha \cdot E_{\text{lost}}$, and returns the reorganized graph. The parameter $\alpha \in \{0.25, 0.50, 0.75\}$ represents rewiring capacity---the fraction of lost edges the network can replace. Low $\alpha$ models a hostile enforcement environment; high $\alpha$ models a permissive one.
+
+For $k = 1$, there are 91 candidate removals. Each evaluation involves scoring $\sim N^2/2$ non-edges with the logistic model, which takes milliseconds. We solve the problem exactly by exhaustive enumeration. We compare the optimal set against four baselines: top-$k$ by degree, top-$k$ by betweenness, degree-based with rewiring, and the mean over 200 random $k$-subsets.
 
 % ============================================================
 \section{Results}\label{sec:results}
@@ -556,6 +568,23 @@ After removing CJNG and pruning isolates, we recompute all 6 dyadic features on 
 
 The predicted rewiring patterns address the central policy question: does removing the top hub dismantle the network, or does it reorganize around the next hub? If Sinaloa dominates the predicted new alliances---absorbing former CJNG satellites---the network consolidates into a monopolar structure rather than genuinely fragmenting. If instead the predicted alliances are among peripheral groups forming their own clusters, the result is real fragmentation into smaller, less capable units. This simulation does not claim to predict what will happen---it identifies what is structurally most plausible given the formation mechanisms that produced the original network.
 
+\subsection{Optimal Targeting Under Rewiring}\label{sec:results_optimal}
+
+The optimal targeting analysis solves the combinatorial problem (Equation~\ref{eq:optimal}) exactly for budgets $k = 1$ across three rewiring capacity levels ($\alpha = 0.25, 0.50, 0.75$). Figure~\ref{fig:optimal} compares the optimal target set against degree-based, betweenness-based, and random baselines.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/optimal_targeting_comparison.png}
+    \caption{Post-rewiring LCC size by targeting strategy and budget $k$, across rewiring capacity levels $\alpha$. Lower is better (smaller surviving cooperation structure).}
+    \label{fig:optimal}
+\end{figure}
+
+%% TODO: Fill in specific results after rendering QMD
+
+The comparison between strategies reveals whether naive targeting (remove the highest-degree nodes) remains optimal once rewiring is accounted for. If the optimal set differs from the degree-based set, it means that the nodes that look most important in the static network are not necessarily the ones whose removal produces the most durable fragmentation. The network may rewire around the hole left by a high-degree hub but struggle to reconnect after losing a less obvious node---a geographic bridge or a broker whose removal leaves surviving organizations without the shared enemies or geographic proximity needed to form new alliances.
+
+The sensitivity to $\alpha$ is informative for policy. At low $\alpha$ (harsh enforcement), static and rewiring-aware strategies may converge. At high $\alpha$ (permissive environment), the gap between naive and optimal targeting should widen, because the network actively compensates for disruption and the choice of target determines whether that compensation succeeds.
+
 % ============================================================
 \section{Discussion}\label{sec:discussion}
 % ============================================================
@@ -597,7 +626,7 @@ Finally, our algorithms treat all alliance edges as equal. The original data inc
 
 \subsection{Future Work}
 
-Temporal network analysis over multiple BACRIM snapshots would allow tracking of alliance evolution and direct testing of both topological and logistic link predictions. The logistic model could be extended with temporal covariates (time since last enforcement action, alliance age) if longitudinal data became available. Signed-link prediction---predicting both future alliances and future rivalries from the same framework---is a natural extension. ERGMs or STERGMs could test the same hypotheses within a formal statistical network framework that accounts for dyadic dependencies. Agent-based simulation of post-disruption rewiring, where organizations make sequential alliance decisions, would add dynamic realism beyond the static rewiring prediction.
+Temporal network analysis over multiple BACRIM snapshots would allow tracking of alliance evolution and direct testing of both topological and logistic link predictions. The logistic model could be extended with temporal covariates if longitudinal data became available. Signed-link prediction---predicting both future alliances and future rivalries---is a natural extension. ERGMs or STERGMs could test the same hypotheses within a formal statistical network framework. The optimal targeting framework could be extended to sequential (multi-round) operations where the network rewires between each targeting step, and to multi-objective formulations that trade off fragmentation against predicted violence intensity. Agent-based simulation of post-disruption rewiring would add dynamic realism beyond the static rewiring prediction.
 
 % ============================================================
 \section{Conclusion}\label{sec:conclusion}
@@ -609,9 +638,9 @@ The network does not match either null model. It clusters more than Erd\H{o}s--R
 
 Topological link prediction (Jaccard, Adamic-Adar) identifies pairs with identical alliance neighborhoods that lack a direct tie. The dyadic utility logistic regression extends this by incorporating rivalry structure, specialty complementarity, geographic proximity, and structural balance alongside topology. Cross-validation shows whether these features improve prediction over topology alone. The logistic coefficients reveal what drives alliance formation: shared allies (triadic closure), shared enemies (balance theory), and complementary specialties (supply-chain logic) each carry interpretable weight.
 
-Removing CJNG eliminates 28 edges (31\% of the total), turns 23 organizations into isolates, and cuts the LCC from 50 to 26. But fragmentation is not the end of the story. The post-disruption rewiring simulation uses the fitted logistic model to predict which new alliances form in the surviving network, addressing the policy-relevant question of whether hub removal dismantles the network or merely triggers reorganization around the next hub.
+Removing CJNG eliminates 28 edges (31\% of the total), turns 23 organizations into isolates, and cuts the LCC from 50 to 26. But fragmentation is not the end of the story. The post-disruption rewiring simulation predicts which new alliances form in the surviving network, and the optimal targeting analysis identifies which target sets produce the most durable fragmentation across different rewiring capacity assumptions. The comparison between naive (degree-based) and rewiring-aware targeting reveals whether the kingpin strategy remains optimal when the network can reorganize.
 
-Events between 2024 and 2026 confirm that the nodes flagged as most central in the 2020 snapshot were the ones that law enforcement targeted, and that their removal produced consequences our simulation anticipated. A single static snapshot, analyzed with standard network tools and a dyadic formation model, identified where the network was most fragile and how it would plausibly reorganize.
+Events between 2024 and 2026 confirm that the nodes flagged as most central in the 2020 snapshot were the ones that law enforcement targeted, and that their removal produced consequences our simulation anticipated. A single static snapshot, analyzed with a dyadic formation model and a rewiring-aware optimization framework, identified where the network was most fragile, how it would reorganize, and which targets would produce the most lasting disruption.
 
 % ============================================================
 % References

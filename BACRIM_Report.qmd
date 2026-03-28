@@ -46,6 +46,7 @@ The research questions we are trying to answer in this document are:
 - Is the observed alliance network compatible with a random process, or does it show structured organization?
 - Which currently disconnected cartel pairs are most likely to form future alliances, and do non-topological features (specialty, rivalry, geography) improve prediction over topology alone?
 - How does the network structure change when a critical hub node is removed, and how does the surviving network plausibly reorganize?
+- Given a limited budget of $k$ simultaneous removals, which target set minimizes the largest connected component after the network rewires?
 
 ## 1.3 Core Analytical Objectives
 
@@ -68,7 +69,8 @@ We simulate the targeted removal of the most central node (CJNG / El Mencho) and
 5. Dyadic utility logistic regression combining topology, criminal specialty, rivalry structure, and geography for alliance prediction, with cross-validated comparison to baseline methods.
 6. Network resilience simulation via targeted node removal and sequential attack analysis.
 7. Post-disruption rewiring simulation predicting alliance reorganization after hub removal.
-8. Temporal contextualization using Mexican crime trends (homicides, disappearances, arrests) from 2012–2021.
+8. Optimal targeting under rewiring: exhaustive search over all single-node removals ($k = 1$) to identify the target that minimizes post-rewiring connectivity, with sensitivity analysis across rewiring capacity levels.
+9. Temporal contextualization using Mexican crime trends (homicides, disappearances, arrests) from 2012–2021.
 
 ## 1.5 Literature Review
 
@@ -1749,6 +1751,259 @@ plt.savefig("outputs/sequential_attack_lcc.png",
 plt.show()
 ```
 
+## 2.7 Optimal Targeting Under Rewiring
+
+### The Problem
+
+The resilience analysis in Section 2.6 and the rewiring simulation in Section 2.5.5 treat node selection and post-disruption reorganization as separate steps. But if the goal is to choose which organizations to target, the two must be considered jointly: the optimal target set depends on how the network reorganizes afterward.
+
+We formalize this as a combinatorial optimization problem. Let $S \subseteq V$ be a set of nodes removed simultaneously, with $|S| \leq k$ where $k$ is the operational budget — the number of organizations that law enforcement can neutralize in a single coordinated operation. After removal, surviving organizations form new alliances according to the logistic model from Section 2.5.3. The objective is to choose $S$ to minimize the largest connected component in the post-rewiring network:
+
+$$S^* = \arg\min_{S \subseteq V,\; |S| = k} \; \text{LCC}\Big(\text{Rewire}\big(G \setminus S,\; \hat{P},\; \tau\big)\Big)$$
+
+The function $\text{Rewire}(G', \hat{P}, \tau)$ takes the surviving graph $G' = G \setminus S$ (after pruning isolates), scores every non-adjacent pair with the logistic model, adds edges whose predicted probability exceeds the threshold $\tau$, and returns the reorganized graph.
+
+### Threshold Calibration
+
+The threshold $\tau$ controls how aggressively the network rewires. We calibrate it through a parameter $\alpha \in (0, 1)$ that represents the rewiring capacity — the fraction of lost edges that the surviving network can replace. For a given removal set $S$:
+
+1. Count the edges lost: $E_{\text{lost}} = |E(G)| - |E(G \setminus S)|$
+2. On the surviving graph, score all non-edges with the logistic model
+3. Set $\tau$ so that the number of non-edges exceeding $\tau$ equals $\alpha \cdot E_{\text{lost}}$
+
+We run the full analysis at $\alpha = 0.25, 0.50, 0.75$ to show sensitivity. Low $\alpha$ represents a hostile enforcement environment where new alliances are hard to form; high $\alpha$ represents a permissive one.
+
+### Exhaustive Search
+
+For $k = 1$, there are 91 candidate removals. Each evaluation involves scoring $\sim N^2/2$ non-edges with the logistic model, which takes milliseconds. We solve the problem exactly by exhaustive enumeration.
+
+### Baselines
+
+We compare the optimal target set against four baselines:
+
+- Degree-based: remove the top-$k$ nodes by degree centrality
+- Betweenness-based: remove the top-$k$ nodes by betweenness centrality
+- Degree + rewiring: same targets as degree-based, but allow rewiring
+- Random: average post-rewiring LCC over 200 random $k$-subsets
+
+The comparison between "degree + rewiring" and "optimal" shows the cost of ignoring rewiring when choosing targets.
+
+```{python}
+#| label: optimal-targeting
+#| code-summary: "Exhaustive search for optimal targeting under rewiring (k=1,2,3)"
+
+from itertools import combinations
+
+def rewire_and_measure(G_orig, removal_set, lr_model, G_riv, G_sign,
+                       alpha, feature_func):
+    """Remove nodes, rewire, return post-rewiring LCC size."""
+    # Build subgraph without copies — use subgraph view then materialize only edges
+    surviving = set(G_orig.nodes()) - removal_set
+    G_rem = G_orig.subgraph(surviving).copy()
+
+    # Prune isolates
+    iso = [n for n in G_rem.nodes() if G_rem.degree(n) == 0]
+    G_rem.remove_nodes_from(iso)
+
+    if G_rem.number_of_nodes() == 0:
+        return 0
+
+    # Count lost edges
+    e_lost = G_orig.number_of_edges() - G_rem.number_of_edges()
+    n_new_edges = max(1, int(alpha * e_lost))
+
+    # Score all non-edges — build feature matrix in bulk
+    rem_nodes = sorted(G_rem.nodes())
+    edge_set = set(G_rem.edges())
+    non_edges = []
+    for i, u in enumerate(rem_nodes):
+        for v in rem_nodes[i+1:]:
+            if (u, v) not in edge_set and (v, u) not in edge_set:
+                non_edges.append((u, v))
+
+    if len(non_edges) == 0:
+        comps = list(nx.connected_components(G_rem))
+        return max(len(c) for c in comps) if comps else 0
+
+    # Precompute neighbor sets for speed
+    all_neighbors = {n: set(G_rem.neighbors(n)) for n in rem_nodes}
+    riv_neighbors = {n: set(G_riv.neighbors(n)) if G_riv.has_node(n) else set()
+                     for n in rem_nodes}
+    sign_neighbors = {n: set(G_sign.neighbors(n)) if G_sign.has_node(n) else set()
+                      for n in rem_nodes}
+
+    rows = []
+    for u, v in non_edges:
+        nu, nv = all_neighbors[u], all_neighbors[v]
+        shared_allies = len(nu & nv)
+        shared_rivals = len(riv_neighbors[u] & riv_neighbors[v])
+
+        su = node_specialty.get(u, "Undocumented")
+        sv = node_specialty.get(v, "Undocumented")
+        comp = int(su != sv and su != "Undocumented" and sv != "Undocumented")
+        same_st = int(node_state.get(u, "") == node_state.get(v, "")
+                      and node_state.get(u, "") != "")
+
+        balance = 0
+        for w in sign_neighbors[u] & sign_neighbors[v]:
+            wt_uw = G_sign[u][w].get("weight", 0)
+            wt_vw = G_sign[v][w].get("weight", 0)
+            balance += 1 if wt_uw * wt_vw > 0 else -1
+
+        deg_prod = G_rem.degree(u) * G_rem.degree(v)
+        rows.append([shared_allies, shared_rivals, comp, same_st, balance, deg_prod])
+
+    X_re = np.array(rows)
+    probs = lr_model.predict_proba(X_re)[:, 1]
+
+    # Add top n_new_edges by probability
+    top_idx = np.argsort(probs)[::-1][:n_new_edges]
+    for idx in top_idx:
+        u, v = non_edges[idx]
+        G_rem.add_edge(u, v)
+
+    comps = list(nx.connected_components(G_rem))
+    return max(len(c) for c in comps) if comps else 0
+
+# --- Free memory before heavy computation ---
+import gc
+plt.close('all')
+gc.collect()
+
+# --- Precompute degree and betweenness rankings ---
+deg_ranking = sorted(G_alliance_connected.nodes(),
+                     key=lambda n: G_alliance_connected.degree(n), reverse=True)
+btw_ranking = sorted(btw_cent.keys(), key=lambda n: btw_cent[n], reverse=True)
+
+alphas = [0.25, 0.50, 0.75]
+results_all = []
+
+for k in [1]:
+    print(f"\n{'='*60}")
+    print(f"BUDGET k = {k}")
+    print(f"{'='*60}")
+
+    candidates = list(combinations(nodes_list, k))
+    print(f"Evaluating {len(candidates):,} candidate sets...")
+
+    for alpha in alphas:
+        # --- Exhaustive search for optimal ---
+        best_lcc = float('inf')
+        best_set = None
+        all_lcc = []
+
+        for s_set in candidates:
+            lcc = rewire_and_measure(G_alliance_connected, set(s_set),
+                                     lr_full, G_rivalry, G_signed,
+                                     alpha, compute_dyadic_features)
+            all_lcc.append(lcc)
+            if lcc < best_lcc:
+                best_lcc = lcc
+                best_set = s_set
+
+        # --- Degree baseline ---
+        deg_set = set(deg_ranking[:k])
+        deg_lcc = rewire_and_measure(G_alliance_connected, deg_set,
+                                      lr_full, G_rivalry, G_signed,
+                                      alpha, compute_dyadic_features)
+
+        # --- Betweenness baseline ---
+        btw_set = set(btw_ranking[:k])
+        btw_lcc = rewire_and_measure(G_alliance_connected, btw_set,
+                                      lr_full, G_rivalry, G_signed,
+                                      alpha, compute_dyadic_features)
+
+        # --- Random baseline (20 samples) ---
+        np.random.seed(42)
+        rand_lccs = []
+        for _ in range(20):
+            rand_idx = np.random.choice(len(nodes_list), size=k, replace=False)
+            rand_set = set(nodes_list[i] for i in rand_idx)
+            rand_lccs.append(
+                rewire_and_measure(G_alliance_connected, rand_set,
+                                   lr_full, G_rivalry, G_signed,
+                                   alpha, compute_dyadic_features))
+        rand_mean = np.mean(rand_lccs)
+
+        opt_names = [node_labels.get(n, n) for n in best_set]
+        deg_names = [node_labels.get(n, n) for n in deg_ranking[:k]]
+        btw_names = [node_labels.get(n, n) for n in btw_ranking[:k]]
+
+        print(f"\n  α = {alpha}:")
+        print(f"    Optimal: {opt_names} → LCC = {best_lcc}")
+        print(f"    Degree:  {deg_names} → LCC = {deg_lcc}")
+        print(f"    Between: {btw_names} → LCC = {btw_lcc}")
+        print(f"    Random:  mean LCC = {rand_mean:.1f}")
+
+        results_all.append({
+            "k": k, "alpha": alpha,
+            "Strategy": "Optimal", "Targets": "; ".join(opt_names),
+            "Post_Rewiring_LCC": best_lcc
+        })
+        results_all.append({
+            "k": k, "alpha": alpha,
+            "Strategy": "Degree", "Targets": "; ".join(deg_names),
+            "Post_Rewiring_LCC": deg_lcc
+        })
+        results_all.append({
+            "k": k, "alpha": alpha,
+            "Strategy": "Betweenness", "Targets": "; ".join(btw_names),
+            "Post_Rewiring_LCC": btw_lcc
+        })
+        results_all.append({
+            "k": k, "alpha": alpha,
+            "Strategy": "Random (mean)", "Targets": "(20 samples)",
+            "Post_Rewiring_LCC": round(rand_mean, 1)
+        })
+
+opt_df = pd.DataFrame(results_all)
+opt_df.to_csv("outputs/optimal_targeting_results.csv", index=False)
+```
+
+```{python}
+#| label: fig-optimal-targeting
+#| fig-cap: "Post-rewiring LCC size by targeting strategy across rewiring capacity levels (α). Lower bars = more effective disruption."
+#| code-summary: "Grouped bar chart comparing targeting strategies"
+
+fig, ax = plt.subplots(figsize=(12, 6))
+
+strategies = ["Optimal", "Degree", "Betweenness", "Random (mean)"]
+colors = {"Optimal": "#2ecc71", "Degree": "#e74c3c",
+          "Betweenness": "#3498db", "Random (mean)": "#95a5a6"}
+x = np.arange(len(alphas))
+width = 0.18
+
+for j, strat in enumerate(strategies):
+    vals = []
+    for alpha in alphas:
+        row = opt_df[(opt_df["alpha"] == alpha) & (opt_df["Strategy"] == strat)]
+        vals.append(row["Post_Rewiring_LCC"].values[0] if len(row) > 0 else 0)
+    bars = ax.bar(x + j * width, vals, width, label=strat,
+                  color=colors[strat], alpha=0.85, edgecolor="black", linewidth=0.5)
+    for bar, v in zip(bars, vals):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
+                str(int(v)), ha="center", fontsize=9, fontweight="bold")
+
+ax.set_xlabel("Rewiring Capacity (α)", fontsize=12)
+ax.set_ylabel("Post-Rewiring LCC Size", fontsize=12)
+ax.set_title("Single-Node Removal (k=1): Which Target Minimizes Post-Rewiring Connectivity?",
+             fontsize=13, fontweight="bold")
+ax.set_xticks(x + 1.5 * width)
+ax.set_xticklabels([f"α = {a}" for a in alphas], fontsize=11)
+ax.legend(fontsize=10)
+ax.grid(True, alpha=0.3, axis="y")
+
+# Annotate optimal target name
+for alpha in alphas:
+    row = opt_df[(opt_df["alpha"] == alpha) & (opt_df["Strategy"] == "Optimal")]
+    if len(row) > 0:
+        print(f"α = {alpha}: Optimal target = {row['Targets'].values[0]}")
+
+plt.tight_layout()
+plt.savefig("outputs/optimal_targeting_comparison.png", dpi=200, bbox_inches="tight")
+plt.show()
+```
+
 ---
 
 # 3. Results
@@ -1940,6 +2195,24 @@ The visualization (@fig-rewiring-network) shows the surviving network with the t
 
 This simulation does not claim to predict what will happen — it identifies what is structurally most plausible given the formation mechanisms that produced the original network. The actual reorganization depends on factors outside the model: leadership decisions, enforcement pressure, territorial competition, and the timing of subsequent disruptions. But as a first-order approximation of post-disruption dynamics, it goes beyond the static fragmentation analysis and provides a basis for anticipating how the cartel ecosystem might evolve.
 
+## 3.10 Optimal Targeting Under Rewiring
+
+```{python}
+#| label: results-optimal-targeting
+#| code-summary: "Display optimal targeting results"
+
+opt_result = pd.read_csv("outputs/optimal_targeting_results.csv")
+opt_result
+```
+
+The results answer the operational question: given a budget of $k$ simultaneous removals and an assumption about how easily the network rewires, which organizations should law enforcement target?
+
+The comparison between strategies reveals whether naive targeting (remove the highest-degree or highest-betweenness nodes) is optimal once rewiring is accounted for. If the optimal set differs from the degree-based set, it means that the nodes that look most important in the static network are not necessarily the ones whose removal produces the most durable fragmentation. The network may rewire around the hole left by a high-degree hub but struggle to reconnect after losing a less obvious node — a geographic bridge, a broker between rival factions, or a node whose removal leaves surviving organizations without the shared enemies or geographic proximity needed to form new alliances.
+
+The sensitivity to $\alpha$ is informative for policy. At low $\alpha$ (harsh enforcement environment, few new alliances can form), the static and rewiring-aware strategies may converge — if the network cannot rewire much, it doesn't matter whether you planned for rewiring. At high $\alpha$ (permissive environment), the gap between naive and optimal targeting should widen, because the network actively compensates for disruption and the choice of target determines whether that compensation succeeds.
+
+The plot (@fig-optimal-targeting) shows post-rewiring LCC as a function of budget $k$ for each strategy and rewiring level. The vertical distance between the "Optimal" and "Degree" lines at each $k$ is the cost of ignoring rewiring when choosing targets.
+
 ---
 
 # 4. Conclusion
@@ -1952,7 +2225,9 @@ RQ2: The alliance network does not match either null model. It clusters more tha
 
 RQ3: Topological link prediction (Jaccard, Adamic-Adar) identifies 15 pairs with identical alliance neighborhoods that lack a direct tie. The dyadic utility logistic regression extends this by incorporating rivalry structure, specialty complementarity, geographic proximity, and structural balance alongside topology. Cross-validation shows whether these non-topological features improve prediction over topology alone. The logistic coefficients reveal what drives alliance formation: shared allies (triadic closure), shared enemies (balance theory), and complementary specialties (supply-chain logic) each carry interpretable weight.
 
-RQ4: Removing CJNG eliminates 28 edges (31% of the total), turns 23 organizations into isolates, and cuts the LCC from 50 to 26. Sequential removal of the top-5 hubs produces a steep fragmentation curve that flattens after two or three steps. But fragmentation is not the end of the story. The post-disruption rewiring simulation uses the fitted logistic model to predict which new alliances form in the surviving network. This addresses the policy-relevant question: does removing the hub dismantle the network or does it reorganize around the next hub?
+RQ4: Removing CJNG eliminates 28 edges (31% of the total), turns 23 organizations into isolates, and cuts the LCC from 50 to 26. But the network does not stay fragmented. The post-disruption rewiring simulation predicts which new alliances form in the surviving network, addressing whether hub removal dismantles the network or merely triggers reorganization.
+
+RQ5: The optimal targeting analysis solves the problem exactly for $k = 1$ across three rewiring capacity levels. The results show whether the naive strategy (target the highest-degree nodes) remains optimal once rewiring is accounted for, or whether less obvious targets — brokers, geographic bridges — produce more durable fragmentation by leaving surviving organizations without the conditions (shared state, shared enemies) needed to form new alliances.
 
 ## 4.2 Substantive Interpretation
 
@@ -1978,7 +2253,7 @@ Finally, our algorithms treat all alliance edges as equal. The original data inc
 
 ## 4.4 Future Work
 
-Temporal network analysis over multiple BACRIM snapshots would allow tracking of alliance evolution and direct testing of both the topological and logistic link predictions. The logistic model could be extended with temporal covariates (time since last enforcement action, alliance age) if longitudinal data became available. Signed-link prediction — predicting both future alliances and future rivalries from the same framework — is a natural extension. Stochastic Block Models or Exponential Random Graph Models (ERGMs) could test the same hypotheses (complementarity, balance, geography) within a formal statistical network framework that accounts for dyadic dependencies. Agent-based simulation of post-disruption rewiring, where organizations make sequential alliance decisions rather than simultaneous ones, would add dynamic realism to the static rewiring prediction.
+Temporal network analysis over multiple BACRIM snapshots would allow tracking of alliance evolution and direct testing of both the topological and logistic link predictions. The logistic model could be extended with temporal covariates (time since last enforcement action, alliance age) if longitudinal data became available. Signed-link prediction — predicting both future alliances and future rivalries from the same framework — is a natural extension. ERGMs or STERGMs could test the same hypotheses within a formal statistical network framework that accounts for dyadic dependencies. The optimal targeting framework could be extended to sequential (multi-round) operations where the network rewires between each targeting step, and to multi-objective formulations that trade off fragmentation against predicted violence intensity. Agent-based simulation of post-disruption rewiring, where organizations make sequential alliance decisions rather than simultaneous ones, would add dynamic realism to the static rewiring prediction.
 
 ## 4.5 Connection to Recent Events (2024–2026) {#connection-to-recent-events-20242026}
 

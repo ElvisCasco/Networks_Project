@@ -1,0 +1,13 @@
+k,alpha,Strategy,Targets,Post_Rewiring_LCC
+1,0.25,Optimal,CJNG,52.0
+1,0.25,Degree,CJNG,52.0
+1,0.25,Betweenness,CJNG,52.0
+1,0.25,Random (mean),(20 samples),74.5
+1,0.5,Optimal,CJNG,61.0
+1,0.5,Degree,CJNG,61.0
+1,0.5,Betweenness,CJNG,61.0
+1,0.5,Random (mean),(20 samples),74.5
+1,0.75,Optimal,CJNG,61.0
+1,0.75,Degree,CJNG,61.0
+1,0.75,Betweenness,CJNG,61.0
+1,0.75,Random (mean),(20 samples),74.5
