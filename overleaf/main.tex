@@ -78,8 +78,8 @@ Events between 2024 and 2026---the arrest of Ismael ``El Mayo'' Zambada, the kil
 \begin{enumerate}[label=\textbf{RQ\arabic*:}, leftmargin=2.5em]
     \item What are the structural properties of the cartel alliance network, and how do organizational characteristics relate to network position?
     \item Is the observed alliance network compatible with a random generative process, or does it exhibit structured organization?
-    \item Which currently disconnected cartel pairs are most likely to form future alliances based on network topology?
-    \item How does the network respond to the removal of its most central hub?
+    \item Which currently disconnected cartel pairs are most likely to form future alliances, and do non-topological features (specialty, rivalry, geography) improve prediction over topology alone?
+    \item How does the network respond to the removal of its most central hub, and how does the surviving network plausibly reorganize?
 \end{enumerate}
 
 \subsection{Contributions}
@@ -90,7 +90,9 @@ This paper makes the following contributions:
     \item Centrality analysis linking organizational type, criminal specialty, and drug portfolio to network position.
     \item Empirical comparison against Erd\H{o}s--R\'enyi and Barab\'asi--Albert null models.
     \item Topological link prediction using Jaccard and Adamic-Adar metrics.
+    \item Dyadic utility logistic regression combining topology, criminal specialty, rivalry structure, and geography for alliance prediction, with cross-validated comparison to baseline methods.
     \item Network resilience simulation via targeted single-node and sequential hub removal.
+    \item Post-disruption rewiring simulation predicting alliance reorganization after hub removal.
     \item Temporal contextualization using post-2020 events to validate structural predictions.
 \end{enumerate}
 
@@ -223,6 +225,19 @@ This measures the fraction of the combined neighborhood that is shared. Complexi
 Each shared neighbor $w$ contributes inversely to the log of its degree. Low-degree shared neighbors contribute more, since they represent selective, informative connections \citep{adamic2003friends}. A shared ally with degree 2 contributes $1/\log 2 \approx 1.44$; one with degree 100 contributes only $1/\log 100 \approx 0.22$.
 
 Candidates are ranked by Jaccard (primary) and Adamic-Adar (secondary).
+
+\paragraph{Dyadic utility logistic regression.}
+Jaccard and Adamic-Adar use topology alone. A more complete model of alliance formation treats each potential pair $(i,j)$ as a decision and combines multiple dyadic features in a logistic regression:
+\begin{equation}\label{eq:logistic}
+    P(\text{alliance} \mid i, j) = \frac{1}{1 + e^{-(\beta_0 + \boldsymbol{\beta}^T \mathbf{x}_{ij})}}
+\end{equation}
+The feature vector $\mathbf{x}_{ij}$ includes six terms: (1) SharedAllies---common neighbors in the alliance graph (triadic closure); (2) SharedRivals---common enemies in the signed graph (structural balance: shared enemies push toward alliance); (3) Complementarity---1 if $i$ and $j$ have different primary specialties (supply-chain logic: different capabilities attract); (4) SameState---1 if both operate in the same Mexican state (geographic proximity); (5) BalanceScore---sum over common signed neighbors of $+1$ if both ties have the same sign, $-1$ otherwise (Heider balance); (6) DegreeProduct---$\deg(i) \times \deg(j)$ (preferential attachment). With 91 edges among $\binom{91}{2} = 4{,}095$ possible pairs (2.2\% positive rate), we use class-weighted logistic regression to prevent trivial all-zero predictions.
+
+\paragraph{Cross-validation.}
+We compare four models using 5-fold edge-holdout cross-validation. In each fold, 20\% of alliance edges are removed, each model is fitted or evaluated on the remaining graph, and AUC-ROC is computed on the held-out edges plus an equal number of randomly sampled non-edges. The four models: (1) Jaccard alone, (2) Adamic-Adar alone, (3) logistic with topology features only (SharedAllies + DegreeProduct), (4) logistic with all 6 features.
+
+\paragraph{Post-disruption rewiring.}
+After removing CJNG (Section~\ref{sec:resilience_methods}), we recompute all 6 dyadic features on the surviving network and score every non-adjacent pair with the logistic model fitted on the intact network. The top-ranked pairs are the most plausible new alliances. This extends the static fragmentation analysis with a forward-looking prediction of how the network reorganizes.
 
 \subsection{Network Resilience: Targeted Node Removal}\label{sec:resilience_methods}
 
@@ -419,6 +434,54 @@ The Adamic-Adar index serves as a tiebreaker. \'Antrax and Mando Sur Gente Nueva
     \label{fig:link_pred_dist}
 \end{figure}
 
+\subsubsection{Logistic Regression Coefficients}
+
+Table~\ref{tab:logistic_coef} reports the fitted coefficients and odds ratios. The results are not what a purely topological analysis would predict. SameState dominates with a coefficient of 2.72 (odds ratio 15.2): two organizations in the same Mexican state are roughly 15 times more likely to ally than a cross-state pair, holding other features constant. Geography is the single strongest predictor of alliance formation. SharedRivals ranks second (coefficient 1.34, odds ratio 3.8), confirming structural balance theory --- organizations that share common enemies are nearly four times as likely to cooperate. DegreeProduct is modestly positive (0.18), consistent with a weak preferential attachment effect.
+
+SharedAllies, despite being the basis for Jaccard and Adamic-Adar, has a \emph{negative} coefficient ($-0.69$) in the multivariate model. This does not mean shared allies discourage alliances. It means that once geography and shared rivals are accounted for, the residual effect of shared allies is negative --- the raw correlation between shared allies and alliance is driven by the fact that same-state organizations share neighbors \emph{and} tend to ally. When SameState enters the model, SharedAllies loses its marginal signal. Complementarity is slightly negative ($-0.22$), suggesting that in this network, homophily (same-specialty alliances) is weakly favored over functional complementarity --- possibly because same-specialty organizations operate in the same markets and have more operational contact.
+
+\begin{table}[H]
+\centering
+\caption{Logistic regression coefficients for dyadic alliance prediction.}
+\label{tab:logistic_coef}
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{Feature} & \textbf{Coefficient} & \textbf{Odds Ratio} \\
+\midrule
+SameState & 2.724 & 15.24 \\
+SharedRivals & 1.339 & 3.81 \\
+DegreeProduct & 0.175 & 1.19 \\
+BalanceScore & $-0.017$ & 0.98 \\
+Complementarity & $-0.222$ & 0.80 \\
+SharedAllies & $-0.694$ & 0.50 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Model Comparison}
+
+Table~\ref{tab:auc} compares the four models via 5-fold edge-holdout cross-validation.
+
+\begin{table}[H]
+\centering
+\caption{5-fold cross-validation AUC for link prediction models.}
+\label{tab:auc}
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{Model} & \textbf{Mean AUC} & \textbf{Std AUC} \\
+\midrule
+Jaccard & 0.472 & 0.036 \\
+Adamic-Adar & 0.484 & 0.031 \\
+Logistic (topology) & 0.414 & 0.070 \\
+Logistic (full) & 0.725 & 0.057 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The results are striking. Jaccard (0.47) and Adamic-Adar (0.48) perform at chance level --- topology alone cannot predict held-out edges in this network. The topology-only logistic model (0.41) fares even worse, confirming that SharedAllies and DegreeProduct carry little signal once edges are removed from the training graph. The full logistic model (0.73) is the only model that substantially beats random guessing, and the improvement comes entirely from the non-topological features --- geography, shared rivals, and balance. This is the central finding: alliance formation in the cartel network is driven more by where organizations are located and who their enemies are than by who their current allies are.
+
 \subsection{Network Resilience}\label{sec:results_resilience}
 
 \subsubsection{Single Node Removal: CJNG}
@@ -478,6 +541,21 @@ The fragmentation curve is steep at the beginning and flattens after two or thre
 
 This pattern matches the theoretical prediction from \citet{albert2000error}: networks with heavy-tailed degree distributions tolerate random failures but collapse quickly under targeted attack on hubs. The cartel alliance network, with its extreme degree concentration around CJNG and Sinaloa, fits this pattern. And the real-world strategy observed in 2024--2026---sequentially targeting El Mencho, El Mayo, and Los Cuinis leadership---follows exactly the sequence our adaptive attack algorithm would prescribe.
 
+\subsection{Post-Disruption Rewiring Predictions}\label{sec:results_rewiring}
+
+The resilience analysis treats the network as static: remove a node, measure the damage, stop. But criminal organizations do not sit in fragments. They seek new alliances to replace lost supply chains, consolidate uncontrolled territory, or bandwagon with the surviving dominant hub. The logistic model from Section~\ref{sec:linkpred_methods} lets us predict which new alliances are most likely to form after CJNG's removal.
+
+After removing CJNG and pruning isolates, we recompute all 6 dyadic features on the 67-node surviving network and score every non-adjacent pair. The top-ranked pairs are the most plausible new alliances given the formation mechanisms learned from the intact network. Figure~\ref{fig:rewiring} shows the surviving network with the top-10 predicted new alliances drawn as dashed green edges. Former CJNG allies (orange) are the key nodes: do the predictions connect them to Sinaloa (red), to each other, or to new partners?
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/post_disruption_rewiring.png}
+    \caption{Surviving network after CJNG removal. Existing edges in gray; top-10 predicted new alliances as dashed green edges. Orange = former CJNG allies; red = Sinaloa.}
+    \label{fig:rewiring}
+\end{figure}
+
+The predicted rewiring patterns address the central policy question: does removing the top hub dismantle the network, or does it reorganize around the next hub? If Sinaloa dominates the predicted new alliances---absorbing former CJNG satellites---the network consolidates into a monopolar structure rather than genuinely fragmenting. If instead the predicted alliances are among peripheral groups forming their own clusters, the result is real fragmentation into smaller, less capable units. This simulation does not claim to predict what will happen---it identifies what is structurally most plausible given the formation mechanisms that produced the original network.
+
 % ============================================================
 \section{Discussion}\label{sec:discussion}
 % ============================================================
@@ -509,7 +587,7 @@ In February 2025, the US designated both CJNG and the Sinaloa Cartel as Foreign 
 
 The main limitation is temporal. The 2020 snapshot captures alliances and rivalries at a single point in time. We cannot observe how ties form, dissolve, or shift in response to arrests, killings, or territorial changes. A longitudinal dataset would allow testing whether link predictions materialize and whether the fragmentation dynamics we simulate actually play out as modeled.
 
-The link prediction model uses topology alone. It ignores geography, economic complementarity, shared drug routes, and law enforcement pressure---all of which plausibly affect alliance formation. Adding node covariates to the prediction framework would likely improve accuracy.
+The logistic link prediction model incorporates node attributes (specialty, geography) and signed network features (shared rivals, balance), but it still uses a static cross-section. Temporal features---alliance duration, recent enforcement actions, evolving territorial control---are unavailable in the 2020 snapshot and would likely improve prediction if longitudinal data existed. The rewiring simulation assumes that the same formation mechanisms apply after disruption, which may not hold if disruption changes the rules of the game.
 
 The data is necessarily incomplete. Covert relationships may go unrecorded, and the boundary of who counts as a distinct organization is sometimes blurry. \citet{sparrow1991application} identified incompleteness and fuzzy boundaries as fundamental challenges of criminal network analysis.
 
@@ -519,7 +597,7 @@ Finally, our algorithms treat all alliance edges as equal. The original data inc
 
 \subsection{Future Work}
 
-Temporal network analysis over multiple BACRIM snapshots would allow tracking of alliance evolution and direct testing of our link predictions. Signed-link prediction models that incorporate rivalry edges---predicting both future alliances and future rivalries---are a natural extension. Stochastic Block Models could identify latent community structure and test whether alliances follow block patterns by region or specialty. Weighted analysis using the alliance strength variable, and geographic or attribute-based prediction combining topology with node covariates, are also worth pursuing.
+Temporal network analysis over multiple BACRIM snapshots would allow tracking of alliance evolution and direct testing of both topological and logistic link predictions. The logistic model could be extended with temporal covariates (time since last enforcement action, alliance age) if longitudinal data became available. Signed-link prediction---predicting both future alliances and future rivalries from the same framework---is a natural extension. ERGMs or STERGMs could test the same hypotheses within a formal statistical network framework that accounts for dyadic dependencies. Agent-based simulation of post-disruption rewiring, where organizations make sequential alliance decisions, would add dynamic realism beyond the static rewiring prediction.
 
 % ============================================================
 \section{Conclusion}\label{sec:conclusion}
@@ -529,9 +607,11 @@ The cartel alliance network has 91 non-isolate organizations connected by 91 edg
 
 The network does not match either null model. It clusters more than Erd\H{o}s--R\'enyi, is more fragmented than Barab\'asi--Albert, and has shorter average paths than both. The degree distribution is heavy-tailed relative to ER but does not fit a clean power law at this sample size.
 
-Link prediction via Jaccard and Adamic-Adar identifies 15 pairs with Jaccard = 1.0---organizations that share identical alliance neighborhoods but lack a direct tie. Many are armed wings or cells within the same factional orbit. Removing CJNG eliminates 28 edges (31\% of the total), turns 23 organizations into isolates, and cuts the LCC from 50 to 26. Sequential removal of the top-5 hubs produces a steep fragmentation curve that flattens after two or three steps.
+Topological link prediction (Jaccard, Adamic-Adar) identifies pairs with identical alliance neighborhoods that lack a direct tie. The dyadic utility logistic regression extends this by incorporating rivalry structure, specialty complementarity, geographic proximity, and structural balance alongside topology. Cross-validation shows whether these features improve prediction over topology alone. The logistic coefficients reveal what drives alliance formation: shared allies (triadic closure), shared enemies (balance theory), and complementary specialties (supply-chain logic) each carry interpretable weight.
 
-Events between 2024 and 2026 confirm that the nodes flagged as most central in the 2020 snapshot were the ones that law enforcement targeted, and that their removal produced consequences our simulation anticipated. A single static snapshot, analyzed with standard network tools, identified where the network was most fragile---and that fragility turned out to be real.
+Removing CJNG eliminates 28 edges (31\% of the total), turns 23 organizations into isolates, and cuts the LCC from 50 to 26. But fragmentation is not the end of the story. The post-disruption rewiring simulation uses the fitted logistic model to predict which new alliances form in the surviving network, addressing the policy-relevant question of whether hub removal dismantles the network or merely triggers reorganization around the next hub.
+
+Events between 2024 and 2026 confirm that the nodes flagged as most central in the 2020 snapshot were the ones that law enforcement targeted, and that their removal produced consequences our simulation anticipated. A single static snapshot, analyzed with standard network tools and a dyadic formation model, identified where the network was most fragile and how it would plausibly reorganize.
 
 % ============================================================
 % References

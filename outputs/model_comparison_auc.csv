@@ -1,0 +1,5 @@
+Model,Mean_AUC,Std_AUC
+Jaccard,0.4716,0.0359
+Adamic_Adar,0.4836,0.0307
+Logistic_Topo,0.4136,0.0699
+Logistic_Full,0.7247,0.0565

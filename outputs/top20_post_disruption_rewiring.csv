@@ -1,0 +1,21 @@
+Node_A,Name_A,Type_A,Node_B,Name_B,Type_B,Prob
+N10013,Sinaloa,National Cartel,N10076,NFMichoacana,Regional Cartel,1.0
+N10013,Sinaloa,National Cartel,N10081,UTepito,Local,1.0
+N10013,Sinaloa,National Cartel,N10019,Noreste,Regional Cartel,1.0
+N10013,Sinaloa,National Cartel,N10017,Golfo,Regional Cartel,1.0
+N10013,Sinaloa,National Cartel,N10150,Zetas VE,Local,1.0
+N10013,Sinaloa,National Cartel,N10127,Talibanes,Local,0.9998
+N10076,NFMichoacana,Regional Cartel,N10081,UTepito,Local,0.9993
+N10004,Caborca,Regional Cartel,N10013,Sinaloa,National Cartel,0.9984
+N10013,Sinaloa,National Cartel,N10032,Cárteles Unidos,Regional Cartel,0.9984
+N10013,Sinaloa,National Cartel,N10133,Viagras,Local,0.9984
+N10013,Sinaloa,National Cartel,N10134,Zetas,National Cartel,0.9984
+N10013,Sinaloa,National Cartel,N10110,Mojarras,Cell,0.994
+N10013,Sinaloa,National Cartel,N10045,Loco Téllez,Cell,0.994
+N10001,ACME,Cell,N10013,Sinaloa,National Cartel,0.9926
+N10013,Sinaloa,National Cartel,N10116,Pelones,Armed Wing,0.9925
+N10076,NFMichoacana,Regional Cartel,N10091,Chapitos,Faction,0.9869
+N10134,Zetas,National Cartel,N10150,Zetas VE,Local,0.9835
+N10147,Tropa del Infierno,Armed Wing,N10150,Zetas VE,Local,0.969
+N10017,Golfo,Regional Cartel,N10019,Noreste,Regional Cartel,0.9579
+N10081,UTepito,Local,N10091,Chapitos,Faction,0.9417

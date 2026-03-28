@@ -1,16 +1,16 @@
 Rank,Node_A,Name_A,Type_A,Node_B,Name_B,Type_B,Jaccard,Adamic_Adar
 1,N10083,Ántrax,Armed Wing,N10136,Mando Sur Gente Nueva,Armed Wing,1.0,1.4427
-2,N10070,Barredora 24/7,Cell,N10114,Páez,Cell,1.0,1.4427
-3,N10077,"Reina del Sur, Cecilia “V""",Undocumented,N10065,"Juan L. (Moco), líder huachicolero",Cell,1.0,1.4427
-4,N10132,Treviño,Faction,N10147,Tropa del Infierno,Armed Wing,1.0,0.7213
-5,N10003,Caballeros Templarios,Regional Cartel,N10140,Paco Pacas,Cell,1.0,0.6213
-6,N10003,Caballeros Templarios,Regional Cartel,N10107,Mayas,Cell,1.0,0.6213
-7,N10003,Caballeros Templarios,Regional Cartel,N10087,Blancos de Troya,Cell,1.0,0.6213
+2,N10065,"Juan L. (Moco), líder huachicolero",Cell,N10077,"Reina del Sur, Cecilia “V""",Undocumented,1.0,1.4427
+3,N10114,Páez,Cell,N10070,Barredora 24/7,Cell,1.0,1.4427
+4,N10147,Tropa del Infierno,Armed Wing,N10132,Treviño,Faction,1.0,0.7213
+5,N10087,Blancos de Troya,Cell,N10140,Paco Pacas,Cell,1.0,0.6213
+6,N10087,Blancos de Troya,Cell,N10003,Caballeros Templarios,Regional Cartel,1.0,0.6213
+7,N10087,Blancos de Troya,Cell,N10107,Mayas,Cell,1.0,0.6213
 8,N10107,Mayas,Cell,N10140,Paco Pacas,Cell,1.0,0.6213
-9,N10107,Mayas,Cell,N10087,Blancos de Troya,Cell,1.0,0.6213
-10,N10087,Blancos de Troya,Cell,N10140,Paco Pacas,Cell,1.0,0.6213
-11,N10093,Chimales,Cell,N10033,"Célula liderada por Alfonso Arzate García, Aquiles",Cell,1.0,0.5581
-12,N10093,Chimales,Cell,N10113,Ninis,Armed Wing,1.0,0.5581
-13,N10093,Chimales,Cell,N10037,Durangos/Cazadores,Cell,1.0,0.5581
-14,N10033,"Célula liderada por Alfonso Arzate García, Aquiles",Cell,N10113,Ninis,Armed Wing,1.0,0.5581
-15,N10033,"Célula liderada por Alfonso Arzate García, Aquiles",Cell,N10037,Durangos/Cazadores,Cell,1.0,0.5581
+9,N10107,Mayas,Cell,N10003,Caballeros Templarios,Regional Cartel,1.0,0.6213
+10,N10140,Paco Pacas,Cell,N10003,Caballeros Templarios,Regional Cartel,1.0,0.6213
+11,N10033,"Célula liderada por Alfonso Arzate García, Aquiles",Cell,N10113,Ninis,Armed Wing,1.0,0.5581
+12,N10033,"Célula liderada por Alfonso Arzate García, Aquiles",Cell,N10093,Chimales,Cell,1.0,0.5581
+13,N10033,"Célula liderada por Alfonso Arzate García, Aquiles",Cell,N10037,Durangos/Cazadores,Cell,1.0,0.5581
+14,N10145,3AD,Cell,N10048,Pechugas,Cell,1.0,0.5581
+15,N10145,3AD,Cell,N10050,Robert,Cell,1.0,0.5581

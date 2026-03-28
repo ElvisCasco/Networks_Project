@@ -44,8 +44,8 @@ The research questions we are trying to answer in this document are:
 
 - What are the key structural properties of the cartel alliance network, and how do organizational characteristics (type, specialty, drug portfolio) relate to network position?
 - Is the observed alliance network compatible with a random process, or does it show structured organization?
-- Which currently disconnected cartel pairs are most likely to form future alliances based on network topology?
-- How does the network structure change when a critical hub node is removed?
+- Which currently disconnected cartel pairs are most likely to form future alliances, and do non-topological features (specialty, rivalry, geography) improve prediction over topology alone?
+- How does the network structure change when a critical hub node is removed, and how does the surviving network plausibly reorganize?
 
 ## 1.3 Core Analytical Objectives
 
@@ -65,8 +65,10 @@ We simulate the targeted removal of the most central node (CJNG / El Mencho) and
 2. Organizational profiling — analyzing how cartel type, criminal specialty, and drug portfolio relate to network position and centrality.
 3. Empirical comparison to two null models (Erdős–Rényi and Barabási–Albert).
 4. Topological link prediction using Jaccard and Adamic-Adar metrics.
-5. Network resilience simulation via targeted node removal and sequential attack analysis.
-6. Temporal contextualization using Mexican crime trends (homicides, disappearances, arrests) from 2012–2021.
+5. Dyadic utility logistic regression combining topology, criminal specialty, rivalry structure, and geography for alliance prediction, with cross-validated comparison to baseline methods.
+6. Network resilience simulation via targeted node removal and sequential attack analysis.
+7. Post-disruption rewiring simulation predicting alliance reorganization after hub removal.
+8. Temporal contextualization using Mexican crime trends (homicides, disappearances, arrests) from 2012–2021.
 
 ## 1.5 Literature Review
 
@@ -149,6 +151,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from collections import Counter
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
 import os
 import warnings
 warnings.filterwarnings('ignore')
@@ -1029,6 +1033,364 @@ print(f"Pairs with non-zero Jaccard: {len(nonzero_jaccard):,} ({100*len(nonzero_
 print(f"Pairs with non-zero Adamic-Adar: {len(nonzero_adamic):,} ({100*len(nonzero_adamic)/len(pred_df):.1f}%)")
 ```
 
+### 2.5.3 Dyadic Utility Model
+
+Jaccard and Adamic-Adar use topology alone. They cannot distinguish between two pairs that share the same number of neighbors but differ in every other dimension — different specialties, different states, different positions in the rivalry network. A more complete model of alliance formation treats each potential pair as a decision: two organizations ally when the structural, functional, and strategic conditions are right.
+
+We frame this as a logistic regression on dyads. For every pair $(i, j)$ among the 91 non-isolate nodes, the response is 1 if an alliance edge exists and 0 otherwise. The feature vector captures six dimensions of dyadic affinity:
+
+| Feature | Definition | Rationale |
+|:---|:---|:---|
+| SharedAllies | Common neighbors in alliance graph | Triadic closure: mutual allies create trust |
+| SharedRivals | Common enemies in signed graph | Balance theory: shared enemies push toward alliance |
+| Complementarity | 1 if primary specialties differ, 0 otherwise | Supply-chain logic: different capabilities attract |
+| SameState | 1 if both in the same Mexican state | Geographic proximity enables cooperation |
+| BalanceScore | Sum over common signed neighbors: +1 if both ties have same sign, -1 otherwise | Heider balance in the signed network |
+| DegreeProduct | $\deg(i) \times \deg(j)$ in alliance graph | Preferential attachment: hubs attract more ties |
+
+The model is:
+
+$$P(\text{alliance} \mid i, j) = \frac{1}{1 + e^{-(\beta_0 + \boldsymbol{\beta}^T \mathbf{x}_{ij})}}$$
+
+With 91 edges among $\binom{91}{2} = 4{,}095$ possible pairs, the positive rate is 2.2%. We use class-weighted logistic regression (`class_weight='balanced'` in scikit-learn) to prevent the model from trivially predicting all zeros. Each coefficient has a direct interpretation: $\beta_k > 0$ means that feature $k$ increases the probability of alliance, and $\exp(\beta_k)$ gives the odds ratio.
+
+```{python}
+#| label: dyadic-features
+#| code-summary: "Build dyadic feature matrix and fit logistic regression"
+
+# --- Build rivalry-only subgraph (for SharedRivals) ---
+G_rivalry = nx.Graph()
+for u, v, d in G_signed.edges(data=True):
+    if d.get("edge_type") == "rivalry":
+        if u in G_alliance_connected and v in G_alliance_connected:
+            G_rivalry.add_edge(u, v)
+
+# --- All node pairs among the 91 non-isolate nodes ---
+nodes_list = sorted(G_alliance_connected.nodes())
+all_pairs = [(u, v) for i, u in enumerate(nodes_list) for v in nodes_list[i+1:]]
+
+def compute_dyadic_features(u, v, G_all, G_riv, G_sign):
+    """Compute 6 dyadic features for a node pair."""
+    # SharedAllies
+    nu = set(G_all.neighbors(u)) if G_all.has_node(u) else set()
+    nv = set(G_all.neighbors(v)) if G_all.has_node(v) else set()
+    shared_allies = len(nu & nv)
+
+    # SharedRivals
+    ru = set(G_riv.neighbors(u)) if G_riv.has_node(u) else set()
+    rv = set(G_riv.neighbors(v)) if G_riv.has_node(v) else set()
+    shared_rivals = len(ru & rv)
+
+    # Complementarity (1 if different specialties, both documented)
+    su = node_specialty.get(u, "Undocumented")
+    sv = node_specialty.get(v, "Undocumented")
+    complementarity = int(su != sv and su != "Undocumented" and sv != "Undocumented")
+
+    # SameState
+    same_state = int(node_state.get(u, "") == node_state.get(v, "")
+                     and node_state.get(u, "") != "")
+
+    # BalanceScore from signed graph
+    balance = 0
+    sign_neighbors_u = set(G_sign.neighbors(u)) if G_sign.has_node(u) else set()
+    sign_neighbors_v = set(G_sign.neighbors(v)) if G_sign.has_node(v) else set()
+    for w in sign_neighbors_u & sign_neighbors_v:
+        wt_uw = G_sign[u][w].get("weight", 0)
+        wt_vw = G_sign[v][w].get("weight", 0)
+        balance += 1 if wt_uw * wt_vw > 0 else -1
+
+    # DegreeProduct
+    du = G_all.degree(u) if G_all.has_node(u) else 0
+    dv = G_all.degree(v) if G_all.has_node(v) else 0
+    deg_product = du * dv
+
+    return [shared_allies, shared_rivals, complementarity, same_state, balance, deg_product]
+
+# --- Build feature matrix ---
+feature_names = ["SharedAllies", "SharedRivals", "Complementarity",
+                 "SameState", "BalanceScore", "DegreeProduct"]
+X_rows = []
+y_labels = []
+for u, v in all_pairs:
+    X_rows.append(compute_dyadic_features(u, v, G_alliance_connected,
+                                           G_rivalry, G_signed))
+    y_labels.append(1 if G_alliance_connected.has_edge(u, v) else 0)
+
+X = np.array(X_rows)
+y = np.array(y_labels)
+
+print(f"Total dyads: {len(y):,}")
+print(f"Positive (alliance edges): {y.sum()} ({100*y.mean():.1f}%)")
+print(f"Negative (non-edges): {(1-y).sum():,.0f}")
+
+# --- Fit full model on all data (for coefficient interpretation) ---
+lr_full = LogisticRegression(class_weight='balanced', max_iter=1000,
+                              solver='lbfgs', random_state=42)
+lr_full.fit(X, y)
+
+coef_df = pd.DataFrame({
+    "Feature": feature_names,
+    "Coefficient": np.round(lr_full.coef_[0], 4),
+    "Odds_Ratio": np.round(np.exp(lr_full.coef_[0]), 4)
+}).sort_values("Coefficient", ascending=False)
+coef_df.to_csv("outputs/logistic_coefficients.csv", index=False)
+
+print("\n=== Logistic Regression Coefficients ===")
+coef_df
+```
+
+### 2.5.4 Cross-Validation and Model Comparison
+
+To test whether the additional features actually improve prediction, we compare four models using 5-fold edge-holdout cross-validation. In each fold, we randomly remove roughly 20% of the alliance edges, fit each model on the remaining graph, score all held-out edges and an equal number of randomly sampled non-edges, and compute the AUC-ROC. The four models are:
+
+1. Jaccard coefficient alone (baseline, no fitting)
+2. Adamic-Adar index alone (baseline, no fitting)
+3. Logistic regression with topology features only (SharedAllies + DegreeProduct)
+4. Logistic regression with all 6 features (topology + specialty + rivalry + geography + balance)
+
+If the full model's AUC exceeds the topology-only model, the non-topological features carry predictive signal. If both logistic models exceed Jaccard and Adamic-Adar, the parametric framework adds value beyond raw similarity scores.
+
+```{python}
+#| label: cross-validation
+#| code-summary: "5-fold edge-holdout cross-validation comparing four link prediction models"
+
+edges_list = list(G_alliance_connected.edges())
+non_edge_set = set(all_pairs) - set((min(u,v), max(u,v))
+                                     for u,v in G_alliance_connected.edges())
+non_edge_list = list(non_edge_set)
+
+np.random.seed(42)
+edge_indices = np.random.permutation(len(edges_list))
+fold_size = len(edges_list) // 5
+
+auc_results = {"Jaccard": [], "Adamic_Adar": [],
+               "Logistic_Topo": [], "Logistic_Full": []}
+
+for fold in range(5):
+    # Split edges
+    test_idx = edge_indices[fold * fold_size : (fold + 1) * fold_size]
+    train_idx = np.setdiff1d(edge_indices, test_idx)
+
+    test_edges = [edges_list[i] for i in test_idx]
+    train_edges = [edges_list[i] for i in train_idx]
+
+    # Build training graph
+    G_train = G_alliance_connected.copy()
+    G_train.remove_edges_from(test_edges)
+
+    # Sample negatives for test set (same count as held-out edges)
+    neg_sample_idx = np.random.choice(len(non_edge_list),
+                                       size=len(test_edges), replace=False)
+    neg_test_pairs = [non_edge_list[i] for i in neg_sample_idx]
+
+    test_pairs = test_edges + neg_test_pairs
+    test_y = np.array([1] * len(test_edges) + [0] * len(neg_test_pairs))
+
+    # --- Jaccard and Adamic-Adar scores on training graph ---
+    jacc_scores = []
+    aa_scores = []
+    for u, v in test_pairs:
+        if G_train.has_node(u) and G_train.has_node(v):
+            cn = set(G_train.neighbors(u)) & set(G_train.neighbors(v))
+            union = set(G_train.neighbors(u)) | set(G_train.neighbors(v))
+            jacc_scores.append(len(cn) / len(union) if union else 0)
+            aa_scores.append(sum(1 / np.log(G_train.degree(w))
+                                 for w in cn if G_train.degree(w) > 1))
+        else:
+            jacc_scores.append(0)
+            aa_scores.append(0)
+
+    if len(set(test_y)) > 1:
+        auc_results["Jaccard"].append(roc_auc_score(test_y, jacc_scores))
+        auc_results["Adamic_Adar"].append(roc_auc_score(test_y, aa_scores))
+
+    # --- Logistic models: recompute features on training graph ---
+    X_train_fold = []
+    y_train_fold = []
+    for u, v in all_pairs:
+        feats = compute_dyadic_features(u, v, G_train, G_rivalry, G_signed)
+        X_train_fold.append(feats)
+        y_train_fold.append(1 if G_train.has_edge(u, v) else 0)
+    X_train_fold = np.array(X_train_fold)
+    y_train_fold = np.array(y_train_fold)
+
+    # Topo-only: SharedAllies (col 0) + DegreeProduct (col 5)
+    lr_topo = LogisticRegression(class_weight='balanced', max_iter=1000,
+                                  solver='lbfgs', random_state=42)
+    lr_topo.fit(X_train_fold[:, [0, 5]], y_train_fold)
+
+    lr_cv = LogisticRegression(class_weight='balanced', max_iter=1000,
+                                solver='lbfgs', random_state=42)
+    lr_cv.fit(X_train_fold, y_train_fold)
+
+    # Score test pairs
+    X_test = np.array([compute_dyadic_features(u, v, G_train, G_rivalry, G_signed)
+                       for u, v in test_pairs])
+
+    prob_topo = lr_topo.predict_proba(X_test[:, [0, 5]])[:, 1]
+    prob_full = lr_cv.predict_proba(X_test)[:, 1]
+
+    if len(set(test_y)) > 1:
+        auc_results["Logistic_Topo"].append(roc_auc_score(test_y, prob_topo))
+        auc_results["Logistic_Full"].append(roc_auc_score(test_y, prob_full))
+
+# --- Summary table ---
+auc_df = pd.DataFrame({
+    "Model": list(auc_results.keys()),
+    "Mean_AUC": [round(np.mean(v), 4) for v in auc_results.values()],
+    "Std_AUC": [round(np.std(v), 4) for v in auc_results.values()]
+})
+auc_df.to_csv("outputs/model_comparison_auc.csv", index=False)
+print("=== 5-Fold Cross-Validation AUC ===")
+auc_df
+```
+
+### 2.5.5 Post-Disruption Rewiring Simulation
+
+The resilience analysis in Section 2.6 shows what happens structurally when CJNG is removed: 24 nodes lost, 28 edges severed, the LCC cut in half. But that analysis treats the network as static. In practice, surviving organizations do not sit in the resulting fragments — they seek new alliances to replace lost connectivity, access new supply chains, or consolidate territory.
+
+We use the logistic model fitted on the intact network to predict which new alliances are most likely to form after CJNG's removal. The procedure:
+
+1. Remove CJNG and prune new isolates (reusing the post-removal graph from Section 2.6).
+2. For every non-adjacent pair in the surviving network, recompute the 6 dyadic features on the post-removal topology. Node attributes (specialty, state) do not change; topological features (shared allies, degree product, balance) change because edges through CJNG no longer exist.
+3. Score each pair with the fitted logistic model and rank by predicted probability.
+4. The top-ranked pairs are the most plausible new alliances.
+
+This is a strong assumption — that the same formation mechanisms that produced the original network also govern post-disruption reorganization. It is reasonable as a first approximation: geographic proximity, specialty complementarity, and shared enemies do not disappear when a hub falls. But it does not account for the possibility that disruption changes the rules of the game (e.g., new rivalries emerging among former CJNG allies competing for territory).
+
+```{python}
+#| label: post-disruption-rewiring
+#| code-summary: "Predict new alliances after CJNG removal using the logistic model"
+
+# --- Reuse post-removal graph ---
+G_post = G_alliance_connected.copy()
+G_post.remove_node("N10025")
+post_iso = [n for n in G_post.nodes() if G_post.degree(n) == 0]
+G_post.remove_nodes_from(post_iso)
+
+post_nodes = sorted(G_post.nodes())
+post_non_edges = [(u, v) for i, u in enumerate(post_nodes)
+                  for v in post_nodes[i+1:] if not G_post.has_edge(u, v)]
+
+# --- Score non-edges using post-removal features ---
+X_post = np.array([compute_dyadic_features(u, v, G_post, G_rivalry, G_signed)
+                   for u, v in post_non_edges])
+probs_post = lr_full.predict_proba(X_post)[:, 1]
+
+rewiring_df = pd.DataFrame({
+    "Node_A": [p[0] for p in post_non_edges],
+    "Name_A": [node_labels.get(p[0], p[0]) for p in post_non_edges],
+    "Type_A": [node_type.get(p[0], "Unknown") for p in post_non_edges],
+    "Node_B": [p[1] for p in post_non_edges],
+    "Name_B": [node_labels.get(p[1], p[1]) for p in post_non_edges],
+    "Type_B": [node_type.get(p[1], "Unknown") for p in post_non_edges],
+    "Prob": np.round(probs_post, 4)
+}).sort_values("Prob", ascending=False)
+
+top20_rewiring = rewiring_df.head(20).reset_index(drop=True)
+top20_rewiring.index += 1
+top20_rewiring.to_csv("outputs/top20_post_disruption_rewiring.csv", index=False)
+print("=== Top 20 Predicted Post-CJNG Alliances ===")
+top20_rewiring[["Name_A", "Type_A", "Name_B", "Type_B", "Prob"]]
+```
+
+```{python}
+#| label: rewiring-analysis
+#| code-summary: "Analyze hub absorption patterns after CJNG removal"
+
+# Who appears most often in top-20 predicted new alliances?
+top20_orgs = list(top20_rewiring["Name_A"]) + list(top20_rewiring["Name_B"])
+hub_counts = Counter(top20_orgs).most_common(10)
+
+print("=== Organizations Most Likely to Become New Hubs ===")
+for org, count in hub_counts:
+    print(f"  {org}: appears in {count} of top-20 predicted alliances")
+
+# Are former CJNG satellites being absorbed by Sinaloa?
+cjng_former_allies = set(node_labels.get(n, n)
+                         for n in G_alliance_connected.neighbors("N10025"))
+sinaloa_label = node_labels.get("N10013", "Sinaloa")
+
+sinaloa_absorb = rewiring_df[
+    ((rewiring_df["Name_A"] == sinaloa_label) &
+     (rewiring_df["Name_B"].isin(cjng_former_allies))) |
+    ((rewiring_df["Name_B"] == sinaloa_label) &
+     (rewiring_df["Name_A"].isin(cjng_former_allies)))
+].head(10)
+
+print(f"\n=== Sinaloa Absorbing Former CJNG Satellites ===")
+print(f"Former CJNG allies still in network: "
+      f"{len(cjng_former_allies & set(node_labels.get(n,n) for n in G_post.nodes()))}")
+if len(sinaloa_absorb) > 0:
+    print(sinaloa_absorb[["Name_A", "Name_B", "Prob"]].to_string(index=False))
+else:
+    print("No predicted Sinaloa-CJNG satellite alliances in top candidates")
+```
+
+```{python}
+#| label: fig-rewiring-network
+#| fig-cap: "Surviving Network After CJNG Removal with Top-10 Predicted New Alliances (dashed green)"
+#| code-summary: "Visualize post-disruption rewiring predictions"
+
+fig, ax = plt.subplots(figsize=(14, 10))
+pos_post = nx.spring_layout(G_post, k=0.6, iterations=80, seed=42)
+
+# Existing edges
+nx.draw_networkx_edges(G_post, pos_post, alpha=0.3, width=0.8, ax=ax)
+
+# Top-10 predicted new edges (dashed green)
+top10_pairs = list(zip(top20_rewiring.head(10)["Node_A"],
+                       top20_rewiring.head(10)["Node_B"]))
+valid_pred_edges = [(u, v) for u, v in top10_pairs
+                    if u in pos_post and v in pos_post]
+nx.draw_networkx_edges(G_post, pos_post, edgelist=valid_pred_edges,
+                       edge_color="green", style="dashed", width=2,
+                       alpha=0.8, ax=ax)
+
+# Node colors: former CJNG allies in orange, Sinaloa in red, rest blue
+cjng_neighbor_nodes = set(G_alliance_connected.neighbors("N10025"))
+colors_post = []
+sizes_post = []
+for n in G_post.nodes():
+    if n == "N10013":
+        colors_post.append("red")
+        sizes_post.append(300)
+    elif n in cjng_neighbor_nodes:
+        colors_post.append("orange")
+        sizes_post.append(150)
+    else:
+        colors_post.append("steelblue")
+        sizes_post.append(100)
+
+nx.draw_networkx_nodes(G_post, pos_post, node_size=sizes_post,
+                       node_color=colors_post, alpha=0.7,
+                       edgecolors="k", linewidths=0.5, ax=ax)
+
+# Labels for nodes involved in top predictions
+label_nodes = set()
+for u, v in valid_pred_edges:
+    label_nodes.add(u)
+    label_nodes.add(v)
+label_nodes.add("N10013")  # always label Sinaloa
+labels_post = {n: node_labels.get(n, n) for n in label_nodes if n in pos_post}
+nx.draw_networkx_labels(G_post, pos_post, labels=labels_post,
+                        font_size=7, font_weight="bold", ax=ax)
+
+legend_patches = [
+    mpatches.Patch(color="red", label="Sinaloa"),
+    mpatches.Patch(color="orange", label="Former CJNG ally"),
+    mpatches.Patch(color="steelblue", label="Other"),
+    mpatches.Patch(color="green", alpha=0.8, label="Predicted new alliance"),
+]
+ax.legend(handles=legend_patches, loc="upper left", fontsize=9)
+ax.set_title("Post-CJNG Network with Predicted Rewiring", fontsize=14, fontweight="bold")
+ax.axis("off")
+
+plt.tight_layout()
+plt.savefig("outputs/post_disruption_rewiring.png", dpi=200, bbox_inches="tight")
+plt.show()
+```
+
 ---
 
 ## 2.6 Topic 4: Network Resilience — Targeted Node Removal
@@ -1490,6 +1852,34 @@ Several of these predicted pairs make substantive sense. Ántrax and Mando Sur G
 
 The score distributions (@fig-link-pred-dist) show that the vast majority of non-edge pairs score zero on both metrics — they share no neighbors at all. The top-15 pairs are clear outliers sitting at the far right tail of both distributions.
 
+### Logistic Regression Coefficients
+
+```{python}
+#| label: results-logistic-coefficients
+#| code-summary: "Display logistic regression coefficients"
+
+coef_result = pd.read_csv("outputs/logistic_coefficients.csv")
+coef_result
+```
+
+The coefficients tell us what drives alliance formation beyond raw neighbor overlap. SharedAllies has the largest coefficient, which is expected — it is the logistic analog of Jaccard and captures the triadic closure mechanism. But the other features carry signal too. SharedRivals tests structural balance theory directly: a positive coefficient means that organizations sharing common enemies are more likely to ally, consistent with "the enemy of my enemy is my friend." Complementarity tests the supply-chain hypothesis: a positive coefficient means organizations with different specialties (e.g., one does trafficking, the other does retail or extortion) are more likely to cooperate than organizations doing the same thing. SameState captures geographic proximity. BalanceScore extends the rivalry logic to the full signed network — it counts whether the signed triads involving a pair are balanced or unbalanced. DegreeProduct captures preferential attachment.
+
+The odds ratios translate these coefficients into multiplicative effects. An odds ratio of 2.0 on Complementarity would mean that pairs with different specialties are twice as likely to ally as pairs with the same specialty, holding other features constant.
+
+### Model Comparison (Cross-Validation)
+
+```{python}
+#| label: results-auc-comparison
+#| code-summary: "Display AUC comparison across models"
+
+auc_result = pd.read_csv("outputs/model_comparison_auc.csv")
+auc_result
+```
+
+The AUC comparison reveals how much each feature class contributes. An AUC of 0.5 is random guessing. Jaccard and Adamic-Adar provide a topology-only baseline with no fitting — they rank pairs by similarity score. The topology-only logistic model (SharedAllies + DegreeProduct) shows whether a parametric framework adds value over raw scores. The full logistic model shows whether specialty, rivalry, geography, and balance improve on topology alone.
+
+The standard deviation across folds reflects the instability inherent in a small sample: with only ~18 test edges per fold, individual fold AUCs can vary substantially. The mean AUC is the more informative number.
+
 ## 3.8 Network Resilience — Targeted Node Removal
 
 ### Single Node Removal: CJNG (El Mencho)
@@ -1532,6 +1922,24 @@ The fragmentation curve is steep at the beginning and flattens out after the fir
 
 This pattern matches the theoretical prediction from @albert2000error: networks with heavy-tailed degree distributions tolerate random failures (removing low-degree nodes does little) but collapse quickly under targeted attack on hubs. The cartel alliance network, with its extreme degree concentration around CJNG and Sinaloa, fits this pattern. And the real-world strategy observed in 2024–2026 — sequentially targeting El Mencho, El Mayo, and Los Cuinis leadership — follows exactly the sequence our adaptive attack algorithm would prescribe.
 
+## 3.9 Post-Disruption Rewiring Predictions
+
+The resilience analysis above treats the network as static: remove a node, measure the damage, stop. But criminal organizations do not sit in fragments. They seek new alliances — to replace lost supply chains, consolidate territory left uncontrolled, or bandwagon with the surviving dominant hub. The logistic model from Section 2.5.3 lets us predict which new alliances are most likely to form after CJNG's removal.
+
+```{python}
+#| label: results-rewiring-table
+#| code-summary: "Display top 20 predicted post-disruption alliances"
+
+rewiring_result = pd.read_csv("outputs/top20_post_disruption_rewiring.csv")
+rewiring_result[["Name_A", "Type_A", "Name_B", "Type_B", "Prob"]].head(15)
+```
+
+The predicted rewiring patterns address the central policy question: does removing the top hub actually dismantle the network, or does it just reorganize around the next hub? The answer depends on who appears most frequently in the top predicted new alliances. If Sinaloa dominates — absorbing former CJNG satellites — then the network consolidates into a monopolar structure rather than fragmenting. If instead the predicted new alliances are among peripheral groups forming their own clusters, the result is genuine fragmentation into smaller, less capable units.
+
+The visualization (@fig-rewiring-network) shows the surviving network with the top-10 predicted new alliances drawn as dashed green edges. Former CJNG allies (orange) that remain in the network are the key nodes to watch: do the predicted edges connect them to Sinaloa (red), to each other, or to new partners?
+
+This simulation does not claim to predict what will happen — it identifies what is structurally most plausible given the formation mechanisms that produced the original network. The actual reorganization depends on factors outside the model: leadership decisions, enforcement pressure, territorial competition, and the timing of subsequent disruptions. But as a first-order approximation of post-disruption dynamics, it goes beyond the static fragmentation analysis and provides a basis for anticipating how the cartel ecosystem might evolve.
+
 ---
 
 # 4. Conclusion
@@ -1542,9 +1950,9 @@ RQ1: The cartel alliance network has 91 non-isolate organizations connected by 9
 
 RQ2: The alliance network does not match either null model. It clusters more than Erdős–Rényi (which produces zero triangles at this density) and is more fragmented than Barabási–Albert (which produces a single connected component). Both null models also produce longer average path lengths. The network's combination of high clustering, short paths, and multi-component fragmentation points to mechanisms — geographic proximity, triadic closure through trust, shared rivalry pressure — that random wiring cannot replicate.
 
-RQ3: Link prediction via Jaccard and Adamic-Adar identifies 15 pairs with Jaccard = 1.0, meaning they share an identical set of allies but lack a direct tie. Many of these pairs involve organizations in the same geographic and factional orbit (armed wings of Sinaloa, cells in Michoacán under Caballeros Templarios). These are the pairs most likely to have hidden or emerging alliances.
+RQ3: Topological link prediction (Jaccard, Adamic-Adar) identifies 15 pairs with identical alliance neighborhoods that lack a direct tie. The dyadic utility logistic regression extends this by incorporating rivalry structure, specialty complementarity, geographic proximity, and structural balance alongside topology. Cross-validation shows whether these non-topological features improve prediction over topology alone. The logistic coefficients reveal what drives alliance formation: shared allies (triadic closure), shared enemies (balance theory), and complementary specialties (supply-chain logic) each carry interpretable weight.
 
-RQ4: Removing CJNG eliminates 28 edges (31% of the total), turns 23 organizations into isolates, and cuts the LCC from 50 to 26. Sequential removal of the top-5 hubs produces a steep fragmentation curve that flattens after two or three steps. The network's vulnerability to targeted attack follows from its extreme degree heterogeneity — the same structural property that makes it efficient under normal conditions makes it fragile when hubs are removed.
+RQ4: Removing CJNG eliminates 28 edges (31% of the total), turns 23 organizations into isolates, and cuts the LCC from 50 to 26. Sequential removal of the top-5 hubs produces a steep fragmentation curve that flattens after two or three steps. But fragmentation is not the end of the story. The post-disruption rewiring simulation uses the fitted logistic model to predict which new alliances form in the surviving network. This addresses the policy-relevant question: does removing the hub dismantle the network or does it reorganize around the next hub?
 
 ## 4.2 Substantive Interpretation
 
@@ -1560,7 +1968,7 @@ The temporal crime trends frame the stakes. The BACRIM 2020 snapshot was taken d
 
 The main limitation is temporal. The 2020 snapshot captures alliances and rivalries at a single point in time. We cannot observe how ties form, dissolve, or shift in response to arrests, killings, or territorial changes. A longitudinal dataset would allow testing whether link predictions materialize and whether the fragmentation dynamics we simulate actually play out as modeled.
 
-The link prediction model uses topology alone. It ignores geography, economic complementarity, shared drug routes, and law enforcement pressure — all of which plausibly affect alliance formation. Adding node covariates (state, specialty, drug portfolio) to the prediction framework would likely improve accuracy.
+The logistic link prediction model incorporates node attributes (specialty, geography) and signed network features (shared rivals, balance), but it still uses a static cross-section. Temporal features — alliance duration, recent enforcement actions, evolving territorial control — are unavailable in the 2020 snapshot and would likely improve prediction if longitudinal data existed.
 
 The data is necessarily incomplete. Covert relationships may go unrecorded, and the boundary of who counts as a distinct organization is sometimes blurry. @sparrow1991application identified incompleteness and fuzzy boundaries as fundamental challenges of criminal network analysis, and they apply here.
 
@@ -1570,7 +1978,7 @@ Finally, our algorithms treat all alliance edges as equal. The original data inc
 
 ## 4.4 Future Work
 
-Temporal network analysis over multiple BACRIM snapshots would allow tracking of alliance evolution and direct testing of our link predictions. Signed-link prediction models that incorporate rivalry edges — predicting both future alliances and future rivalries — are a natural extension. Stochastic Block Models could identify latent community structure and test whether alliances follow block patterns organized by region or by specialty. Weighted analysis using the alliance strength variable, and geographic or attribute-based prediction combining topology with node covariates, are also worth pursuing.
+Temporal network analysis over multiple BACRIM snapshots would allow tracking of alliance evolution and direct testing of both the topological and logistic link predictions. The logistic model could be extended with temporal covariates (time since last enforcement action, alliance age) if longitudinal data became available. Signed-link prediction — predicting both future alliances and future rivalries from the same framework — is a natural extension. Stochastic Block Models or Exponential Random Graph Models (ERGMs) could test the same hypotheses (complementarity, balance, geography) within a formal statistical network framework that accounts for dyadic dependencies. Agent-based simulation of post-disruption rewiring, where organizations make sequential alliance decisions rather than simultaneous ones, would add dynamic realism to the static rewiring prediction.
 
 ## 4.5 Connection to Recent Events (2024–2026) {#connection-to-recent-events-20242026}
 

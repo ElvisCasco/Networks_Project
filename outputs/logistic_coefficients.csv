@@ -1,0 +1,7 @@
+Feature,Coefficient,Odds_Ratio
+SameState,2.7241,15.2428
+SharedRivals,1.3386,3.8137
+DegreeProduct,0.175,1.1912
+BalanceScore,-0.0172,0.983
+Complementarity,-0.2221,0.8008
+SharedAllies,-0.6941,0.4995
