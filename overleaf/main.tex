@@ -1,0 +1,542 @@
+% ============================================================
+% Latent Pathways and Post-Disruption Reorganization
+% in Mexican Cartel Networks
+% ============================================================
+\documentclass[12pt, a4paper]{article}
+
+% --- Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{setspace}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{xcolor}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!60!black,
+    citecolor=blue!60!black,
+    urlcolor=blue!60!black,
+}
+
+\onehalfspacing
+\setlength{\parskip}{0.4em}
+
+% ============================================================
+\begin{document}
+
+% --- Title ---
+\begin{center}
+    {\LARGE \bfseries Latent Pathways and Post-Disruption Reorganization\\[4pt]
+    in Mexican Cartel Networks}\\[18pt]
+
+    Xianriu Cao \quad Elvis Casco \quad Cherryl Chico\\[12pt]
+
+    {\large Networks I: Concepts and Algorithms}\\[4pt]
+    {\large Winter 2026}\\[12pt]
+
+\end{center}
+
+\vspace{1.5em}
+
+% --- Abstract ---
+\begin{abstract}
+\noindent
+Mexican drug cartels form a relational ecosystem of alliances and rivalries whose structure determines territorial control, operational reach, and the intensity of inter-organizational violence. This paper analyzes the BACRIM 2020 signed network---150 criminal organizations, their alliances, and their rivalries---using degree and betweenness centrality, null-model comparison, topological link prediction, and targeted node-removal simulation. The alliance network is sparse, clustered well above random baselines, and dominated by a small number of hubs. Link prediction via Jaccard and Adamic-Adar indices identifies cartel pairs that are topologically primed for future cooperation. Targeted removal of the highest-centrality hub (CJNG) fragments the network into multiple disconnected components, consistent with theoretical predictions for scale-free-like topologies. Events between 2024 and 2026---the arrest of El Mayo Zambada, the killing of El Mencho, and mass cartel extraditions---track the structural vulnerabilities flagged by this static 2020 snapshot, indicating that centrality-based analysis has real predictive value for criminal-network disruption.
+\end{abstract}
+
+\vspace{1em}
+\hrule
+\vspace{1.5em}
+
+% ============================================================
+\section{Introduction}\label{sec:intro}
+% ============================================================
+
+\subsection{Context and Motivation}
+
+Organized crime is a relational phenomenon. Alliances and rivalries among criminal organizations shape who controls territory, who moves product, and where violence concentrates. In Mexico, drug cartels form webs of cooperation and competition that have contributed to over 290,000 homicides and 175,000 disappearances between 2012 and 2021 \citep{inegi2022}. Understanding the structure of these webs is not merely an academic exercise---it informs disruption strategy, intelligence prioritization, and policy design.
+
+The BACRIM 2020 dataset \citep{prietocuriel2023bacrim} captures a signed network of 150 Mexican criminal organizations as of 2020: positive ties represent alliances and negative ties represent rivalries. Unlike datasets centered on individual operatives, BACRIM operates at the organizational level, treating each cartel, cell, or local group as a node. This allows the study of macro-level cooperation patterns---who allies with whom, who fights whom, and which organizations serve as bridges or brokers.
+
+We model the relational structure as a graph $G = (V, E)$, where vertices $V$ represent organizations and edges $E$ represent observed alliances or rivalries. This formalism captures brokerage, clustering, and potential future link formation---dimensions invisible to traditional organizational charts or case-by-case intelligence analysis \citep{sparrow1991application}. We supplement the network data with organizational specialties (primary criminal activities and drug portfolios) compiled from DEA threat assessments \citep{dea2024, dea2025}, Congressional Research Service reports, and InSight Crime profiles.
+
+Events between 2024 and 2026---the arrest of Ismael ``El Mayo'' Zambada, the killing of CJNG leader ``El Mencho,'' and the US designation of both cartels as terrorist organizations---track the structural vulnerabilities identified from this 2020 snapshot with notable precision. We discuss these connections in Section~\ref{sec:recent}.
+
+\subsection{Research Questions}
+
+\begin{enumerate}[label=\textbf{RQ\arabic*:}, leftmargin=2.5em]
+    \item What are the structural properties of the cartel alliance network, and how do organizational characteristics relate to network position?
+    \item Is the observed alliance network compatible with a random generative process, or does it exhibit structured organization?
+    \item Which currently disconnected cartel pairs are most likely to form future alliances based on network topology?
+    \item How does the network respond to the removal of its most central hub?
+\end{enumerate}
+
+\subsection{Contributions}
+
+This paper makes the following contributions:
+\begin{enumerate}[leftmargin=2em]
+    \item Construction of a signed network from raw BACRIM CSV files, enriched with organizational specialty data from multiple intelligence sources.
+    \item Centrality analysis linking organizational type, criminal specialty, and drug portfolio to network position.
+    \item Empirical comparison against Erd\H{o}s--R\'enyi and Barab\'asi--Albert null models.
+    \item Topological link prediction using Jaccard and Adamic-Adar metrics.
+    \item Network resilience simulation via targeted single-node and sequential hub removal.
+    \item Temporal contextualization using post-2020 events to validate structural predictions.
+\end{enumerate}
+
+% ============================================================
+\section{Literature Review}\label{sec:literature}
+% ============================================================
+
+\paragraph{Criminal networks as complex systems.}
+\citet{morselli2009inside} established the foundational framework for studying criminal organizations as networks, showing that degree heterogeneity, clustering, and brokerage in criminal groups reflect strategic coordination rather than randomness. \citet{sparrow1991application} argued early on that social network analysis provides law enforcement with tools superior to hierarchy-based organizational charts, while identifying three persistent challenges: incompleteness, fuzzy boundaries, and temporal dynamics.
+
+\paragraph{Signed networks and structural balance.}
+The BACRIM dataset contains both alliance and rivalry ties, making it a signed network. The theoretical basis for analyzing such structures comes from \citet{heider1946attitudes} and its graph-theoretic formalization by \citet{cartwright1956structural}: in a balanced network, ``the enemy of my enemy is my friend.'' \citet{leskovec2010predicting} extended balance theory to large-scale networks and found that real signed networks tend toward structural balance---a pattern relevant to interpreting cartel alliance and rivalry structures.
+
+\paragraph{Network robustness and targeted attacks.}
+\citet{albert2000error} demonstrated the foundational result that scale-free networks are robust to random node failures but highly vulnerable to targeted attacks on hubs. \citet{callaway2000network} provided the complementary percolation-theory framework. \citet{duijn2014relative} applied these robustness ideas to criminal networks specifically, finding that targeting brokers (high betweenness) is often more effective than targeting hubs (high degree), because broker removal fragments communication channels even when fewer edges are lost.
+
+\paragraph{Link prediction.}
+\citet{libennowell2007link} established the theoretical framework for topological link prediction, comparing common neighbors, Jaccard coefficient, and Adamic-Adar index. \citet{berlusconi2016link} applied link prediction to Italian Mafia co-offending networks and found that Jaccard and Adamic-Adar metrics identified hidden connections later confirmed by intelligence agencies.
+
+\paragraph{Mexican cartel networks.}
+\citet{prietocuriel2023bacrim} provided the first comprehensive signed network of Mexican cartel alliances and rivalries at the organizational level and documented community structure aligned with geographic regions. \citet{coscia2012knowing} analyzed the evolution of cartel territories over time. \citet{calderon2015beheading} studied how Mexico's ``kingpin strategy'' produced network fragmentation that paradoxically increased violence---a finding directly relevant to our node-removal analysis.
+
+
+% ============================================================
+\section{Data and Methods}\label{sec:methods}
+% ============================================================
+
+\subsection{Data and Preprocessing}\label{sec:data}
+
+We use five data files. Three come from the BACRIM 2020 dataset \citep{prietocuriel2023bacrim}:
+
+\begin{itemize}[leftmargin=2em]
+    \item \texttt{BACRIM2020\_Nodes.csv} --- 150 cartel organizations with group name, state, and short name.
+    \item \texttt{BACRIM2020\_Alliances.csv} --- Alliance edges with positive weights (weight = number of Mexican states where the alliance is active).
+    \item \texttt{BACRIM2020\_Rivals.csv} --- Rivalry edges with negative weights.
+\end{itemize}
+
+\noindent We supplement these with:
+
+\begin{itemize}[leftmargin=2em]
+    \item \texttt{BACRIM2020\_Nodes\_With\_Specialties.csv} --- Enriched node data produced by joining \texttt{BACRIM2020\_Nodes.csv} and \texttt{Cartel\_Specialties.csv} (via \texttt{join\_specialties.py}), adding organizational type (National Cartel, Regional Cartel, Local, Cell, Toll-Collector), primary specialty, activity list, drug portfolio, and row-level source attribution (e.g., DEA NDTA 2024/2025, CRS report R41576, and InSight Crime profiles \citep{dea2024,dea2025,crsR41576,insightcrimeProfiles}).
+    \item \texttt{Trends2012\_2021.csv} --- Annual counts of homicides, missing persons, and arrests in Mexico from INEGI.
+\end{itemize}
+
+From these files we construct two graphs:
+\begin{enumerate}[leftmargin=2em]
+    \item A \textbf{signed undirected master graph} where each alliance edge carries weight $+1$ and each rivalry edge carries weight $-1$.
+    \item An \textbf{alliance-only subgraph} used for centrality, link prediction, and resilience tasks.
+\end{enumerate}
+
+Edge deduplication is handled by canonicalizing each edge as $(\min(u,v), \max(u,v))$. Isolate nodes (organizations with no alliance ties) are removed from the alliance subgraph for structural analysis.
+
+\subsection{Contextual Analysis}\label{sec:context}
+
+\subsubsection{Mexican Crime Trends (2012--2021)}
+
+The BACRIM 2020 network is a snapshot from a period of historically high violence. INEGI data records a sharp escalation beginning in 2017, coinciding with the intensification of Mexico's kingpin strategy and the fragmentation of major cartels. The 2020 snapshot captures the network at roughly 36,800 annual homicides and 22,900 disappearances---near-peak levels. Network fragmentation driven by law enforcement operations and inter-cartel competition fuels this violence directly, as splinter groups fight for territorial control \citep{calderon2015beheading}. Figure~\ref{fig:crime_trends} plots these trends with the BACRIM snapshot year marked.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/crime_trends_2012_2021.png}
+    \caption{Mexican crime trends, 2012--2021. The vertical dashed line marks the BACRIM 2020 snapshot year. Source: INEGI.}
+    \label{fig:crime_trends}
+\end{figure}
+
+\subsubsection{Organizational Composition}
+
+The 150 organizations range from national cartels operating across multiple states with sophisticated logistics to local cells controlling a single neighborhood. Drug trafficking dominates as the primary specialty, but organizations also specialize in extortion, fuel theft, and drug retail. Methamphetamine and fentanyl are the most common drug portfolio entries, consistent with DEA 2024--2025 assessments. Figure~\ref{fig:org_profiles} summarizes the composition along three dimensions: organizational type, primary criminal specialty, and drug portfolio.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/organizational_profiles.png}
+    \caption{Organizational composition of the BACRIM 2020 network: type distribution, primary criminal specialty, and drug portfolio.}
+    \label{fig:org_profiles}
+\end{figure}
+
+\subsection{Centrality Measures}\label{sec:centrality_methods}
+
+We compute two complementary centrality measures on the alliance graph.
+
+\paragraph{Degree centrality.}
+For a node $v$ in an undirected graph with $N$ nodes, the degree $k_v = \sum_{j} A_{vj}$ counts incident edges. Degree centrality normalizes by the maximum possible:
+\begin{equation}\label{eq:degree}
+    C_D(v) = \frac{k_v}{N - 1}
+\end{equation}
+High degree centrality identifies \emph{hubs}---organizations allied with many others. Computation is $O(N + E)$.
+
+\paragraph{Betweenness centrality.}
+Betweenness measures how often a node lies on shortest paths between other pairs:
+\begin{equation}\label{eq:betweenness}
+    C_B(v) = \sum_{\substack{s \neq v \neq t \\ s, t \in V}} \frac{\sigma_{st}(v)}{\sigma_{st}}
+\end{equation}
+where $\sigma_{st}$ is the total number of shortest paths from $s$ to $t$ and $\sigma_{st}(v)$ is the number passing through $v$. Normalized by $\frac{(N-1)(N-2)}{2}$ for undirected graphs. High betweenness identifies \emph{brokers}---organizations that bridge otherwise disconnected clusters. We use Brandes' $O(NE)$ algorithm \citep{brandes2001faster}.
+
+\paragraph{Joint interpretation.}
+A node ranking high on both measures is both highly connected and structurally irreplaceable---the most critical target for network disruption. A node with high betweenness but moderate degree represents a hidden vulnerability: few alliances, but positioned on the only paths between groups.
+
+\subsection{Null Models}\label{sec:null_models}
+
+We compare the empirical alliance network against two null models matched on $N$ and (expected) $E$.
+
+\paragraph{Erd\H{o}s--R\'enyi $G(N,p)$.}
+Each of the $\binom{N}{2}$ possible edges exists independently with probability $p = 2E_{\text{real}} / (N(N-1))$. The degree distribution is Poisson: $P(k) \approx \langle k \rangle^k e^{-\langle k \rangle} / k!$, and the expected clustering coefficient is $C_{\text{ER}} = p \approx \langle k \rangle / (N-1)$, which is small for sparse graphs. This model represents the hypothesis that alliances form at random with no structural logic \citep{erdos1959random}.
+
+\paragraph{Barab\'asi--Albert (preferential attachment).}
+Starting from $m_0$ connected nodes, each new node attaches to $m$ existing nodes with probability proportional to their current degree: $\Pi(k_i) = k_i / \sum_j k_j$. This produces a power-law degree distribution $P(k) \sim k^{-3}$. We set $m = \text{round}(E/N)$ to match the average degree \citep{barabasi1999emergence}.
+
+\paragraph{Small-world coefficient.}
+Following \citet{watts1998collective}, we compute:
+\begin{equation}\label{eq:smallworld}
+    \sigma = \frac{C_{\text{real}} / C_{\text{ER}}}{L_{\text{real}} / L_{\text{ER}}}
+\end{equation}
+where $C$ is the global clustering coefficient and $L$ is the average shortest path length in the largest connected component. A value $\sigma > 1$ indicates small-world properties: high local clustering combined with short global paths.
+
+\subsection{Link Prediction}\label{sec:linkpred_methods}
+
+We predict future alliances among currently non-adjacent pairs using two topological similarity metrics \citep{libennowell2007link}.
+
+\paragraph{Jaccard coefficient.}
+For non-adjacent nodes $u$ and $v$:
+\begin{equation}\label{eq:jaccard}
+    J(u, v) = \frac{|\mathcal{N}(u) \cap \mathcal{N}(v)|}{|\mathcal{N}(u) \cup \mathcal{N}(v)|}
+\end{equation}
+This measures the fraction of the combined neighborhood that is shared. Complexity: $O(\min(k_u, k_v))$ per pair.
+
+\paragraph{Adamic-Adar index.}
+\begin{equation}\label{eq:adamicadar}
+    AA(u, v) = \sum_{w \in \mathcal{N}(u) \cap \mathcal{N}(v)} \frac{1}{\log |\mathcal{N}(w)|}
+\end{equation}
+Each shared neighbor $w$ contributes inversely to the log of its degree. Low-degree shared neighbors contribute more, since they represent selective, informative connections \citep{adamic2003friends}. A shared ally with degree 2 contributes $1/\log 2 \approx 1.44$; one with degree 100 contributes only $1/\log 100 \approx 0.22$.
+
+Candidates are ranked by Jaccard (primary) and Adamic-Adar (secondary).
+
+\subsection{Network Resilience: Targeted Node Removal}\label{sec:resilience_methods}
+
+\paragraph{Single targeted removal.}
+Given a target node $v^*$ (selected as the highest-degree/betweenness node):
+\begin{enumerate}[leftmargin=2em]
+    \item Snapshot pre-removal metrics: $N$, $E$, density, clustering, components, LCC size, diameter, average path length.
+    \item Remove $v^*$ and all incident edges.
+    \item Prune new isolates (nodes connected to the network only through $v^*$).
+    \item Recompute all metrics and report $\Delta$.
+\end{enumerate}
+
+\paragraph{Sequential targeted attack.}
+Set $G_0 = G$. At each step $t = 1, \ldots, k$: recalculate degrees in $G_t$, remove the current highest-degree node, prune new isolates, and record the LCC size and component count. Degree is recalculated after each removal (adaptive attack), which is more realistic than removing all $k$ nodes simultaneously---law enforcement operations unfold sequentially and the network reorganizes between each disruption.
+
+\paragraph{Theoretical basis.}
+\citet{albert2000error} showed that scale-free-like networks are robust to random failure but fragile under targeted attack. The critical removal fraction to destroy the giant component is $f_c = 1 - 1/(\kappa - 1)$, where $\kappa = \langle k^2 \rangle / \langle k \rangle$. For heavy-tailed distributions, $\kappa$ is large, so $f_c \to 1$ under random failure (very robust), but targeted removal rapidly reduces $\kappa$ and causes collapse.
+
+\paragraph{Assumptions.}
+We equate node removal with organizational neutralization (a first-order approximation). We use the alliance-only graph and assume no rewiring after removal (a conservative, worst-case assumption). Isolates are pruned. Edges are treated as unweighted.
+
+% ============================================================
+\section{Results}\label{sec:results}
+% ============================================================
+
+\subsection{Descriptive Structure of the Alliance Network}\label{sec:results_descriptive}
+
+Table~\ref{tab:basic_stats} reports the basic statistics of the alliance network (after isolate removal).
+
+\begin{table}[H]
+\centering
+\caption{Basic statistics of the alliance network.}
+\label{tab:basic_stats}
+\small
+\begin{tabular}{ll}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+Nodes ($N$) & 91 \\
+Edges ($E$) & 91 \\
+Density ($\rho$) & 0.0222 \\
+Global Clustering Coefficient ($C$) & 0.0356 \\
+Diameter (LCC) & 8 \\
+Average Path Length (LCC) & 3.30 \\
+Connected Components & 8 \\
+Largest Component Size & 50 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Of the 150 organizations in the original dataset, 91 have at least one alliance tie. Among these 91, there are exactly 91 edges---roughly one alliance per node on average, and a density of $\rho = 0.022$. Barely 2\% of all possible alliances actually exist. Cartels are selective about who they cooperate with.
+
+The network splits into 8 connected components. The largest holds 50 nodes (55\% of the non-isolate network), meaning a slim majority of allied organizations can reach each other through some chain of alliances. The remaining 41 nodes scatter across 7 smaller components---pockets of cooperation with no path to the main cluster. Within the largest component, the diameter is 8 and the average path length is 3.30: any two connected cartels are separated by about three intermediaries on average. That is short enough for coordination to propagate without many hops, but the 8-hop diameter means the periphery is far from the center.
+
+The global clustering coefficient is $C = 0.036$. In absolute terms this is low, but as we show in Section~\ref{sec:results_null}, it is considerably higher than what either null model produces---the triangles that do exist are not accidental.
+
+\subsection{Central Actors}\label{sec:results_centrality}
+
+Table~\ref{tab:centrality} reports the top nodes by degree and betweenness centrality.
+
+\begin{table}[H]
+\centering
+\caption{Top 5 organizations by degree and betweenness centrality.}
+\label{tab:centrality}
+\small
+\begin{tabular}{llcc}
+\toprule
+\textbf{Organization} & \textbf{Type} & \textbf{Degree Centr.} & \textbf{Betweenness Centr.} \\
+\midrule
+CJNG & National Cartel & 0.3111 & 0.2684 \\
+Sinaloa & National Cartel & 0.2333 & 0.0680 \\
+Chapitos & Faction & 0.0667 & 0.0225 \\
+Uni\'on Tepito & Local & 0.0667 & 0.0572 \\
+Talibanes & Local & 0.0444 & 0.1041 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+CJNG dominates both lists. Its degree centrality (0.31) is more than 30\% higher than the runner-up, Sinaloa (0.23), and its betweenness centrality (0.27) dwarfs every other node. No other organization comes close on either measure. CJNG is both the most connected hub and the most critical bridge---removing it would sever the largest number of alliances and break the most shortest paths simultaneously.
+
+The gap between the top two and everyone else is sharp. After CJNG and Sinaloa, degree centrality drops to 0.067 (Chapitos, Uni\'on Tepito)---a fourfold decline. The network is not gradually distributed; it is concentrated around two national cartels.
+
+The betweenness ranking surfaces a less obvious finding. Talibanes, a local organization, ranks second in betweenness (0.10) despite modest degree (0.04). It sits on a disproportionate share of shortest paths between other groups---a bridge between clusters that would otherwise be disconnected. Uni\'on Tepito shows a similar pattern: low degree but high betweenness (0.057). These organizations matter not because of their size but because of where they sit in the network.
+
+National cartels dominate the degree ranking, as expected. But the betweenness ranking includes local groups in positions two, four, five, and six---organizational scale and structural importance are not the same thing. Figure~\ref{fig:centrality_type} confirms this pattern across all organizations: national cartels have higher median centrality on both measures, but the tails of the local-group distribution overlap with the national-cartel range.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/centrality_by_type.png}
+    \caption{Distribution of degree and betweenness centrality by organization type.}
+    \label{fig:centrality_type}
+\end{figure}
+
+\subsection{Geographic Distribution}
+
+Organizations concentrate in a handful of states (Jalisco, Michoac\'an, Guerrero, Tamaulipas, Sinaloa). The alliance edges split roughly evenly between same-state and cross-state ties. Same-state alliances reflect territorial cooperation; cross-state alliances reflect supply-chain logic---a production hub in one state allied with a distribution node in another. Figure~\ref{fig:geographic} shows both the state-level concentration and the same-state vs.\ cross-state breakdown.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/geographic_distribution.png}
+    \caption{Left: number of organizations per state (top 15). Right: same-state vs.\ cross-state alliances.}
+    \label{fig:geographic}
+\end{figure}
+
+\subsection{Signed Network Visualization}
+
+Figure~\ref{fig:signed_network} displays the full signed network using a Fruchterman--Reingold force-directed layout, with nodes colored by organization type. Green edges represent alliances; red dashed edges represent rivalries. Node size scales with total degree.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/signed_network_by_type.png}
+    \caption{BACRIM 2020 signed network. Green = alliance, red dashed = rivalry. Node color indicates organization type; node size is proportional to degree.}
+    \label{fig:signed_network}
+\end{figure}
+
+National cartels (red) sit near the center, pulling in a corona of smaller groups. Many local cells and armed wings connect to the rest of the network through a single edge to one of these national hubs---remove the hub and they become isolates. Rivalry edges (red, dashed) run between clusters rather than within them: groups that are allied with each other rarely have rivalries between them, while groups in different alliance clusters frequently do. This pattern aligns with structural balance theory \citep{cartwright1956structural}---the network approximates a partition into antagonistic blocs where within-bloc ties are positive and between-bloc ties are negative.
+
+The layout also makes visible how CJNG's position differs from Sinaloa's. CJNG connects to allies scattered across the graph, reaching into multiple geographic clusters. Sinaloa's allies are more geographically concentrated. This difference in alliance topology foreshadows the different consequences of disrupting each hub.
+
+\subsection{Null Model Comparison}\label{sec:results_null}
+
+Table~\ref{tab:null_models} compares the empirical alliance network with the Erd\H{o}s--R\'enyi and Barab\'asi--Albert null models.
+
+\begin{table}[H]
+\centering
+\caption{Comparison of empirical alliance network with ER and BA null models.}
+\label{tab:null_models}
+\small
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Network} & \textbf{Nodes} & \textbf{Edges} & \textbf{Clustering $C$} & \textbf{Avg.\ Path $L$} & \textbf{LCC Size} \\
+\midrule
+Real (Alliance) & 91 & 91 & 0.0356 & 3.30 & 50 \\
+Erd\H{o}s--R\'enyi & 91 & 77 & 0.0000 & 6.75 & 62 \\
+Barab\'asi--Albert & 91 & 90 & 0.0000 & 4.48 & 91 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The comparison produces several clear contrasts. The real network has $C = 0.036$; both the ER and BA graphs produce $C = 0$. Neither null model generates a single triangle. The triangles in the real network reflect triadic closure: when two organizations share a mutual ally, trust and operational overlap create pressure for them to form a direct alliance.
+
+Path length: the ER graph has $L = 6.75$, the BA graph has $L = 4.48$, and the real network has $L = 3.30$. The real network is more compact than either null model, a consequence of the extreme hub dominance of CJNG and Sinaloa---most nodes can reach each other in two or three hops by going through one of these hubs.
+
+LCC size: the BA graph is fully connected (LCC = 91) by construction. The ER graph's LCC holds 62 nodes. The real network's LCC holds only 50. The real alliance network is more fragmented than either null model, reflecting the geographic and factional divisions in the cartel ecosystem. The small-world coefficient $\sigma$ formally requires $C_{\text{ER}} > 0$; since ER clustering is zero here, the classical ratio is undefined, but the qualitative picture is clear: the real network clusters far more than random while maintaining shorter paths.
+
+\subsection{Degree Distribution}\label{sec:results_degree}
+
+Figure~\ref{fig:degree_dist} plots the degree distribution on log-log axes. The ER graph produces a tight Poisson-like cluster where most nodes have similar degree---no hubs, no long tail. The BA graph produces the expected power-law slope. The real network falls between: it has a long right tail (CJNG at degree 28, Sinaloa at 21, then a sharp drop to 6) that ER cannot produce, but the tail is not smooth enough to fit a clean power law. Most nodes have degree 1 or 2; a handful have degree 4--6; and then CJNG and Sinaloa sit as outliers far to the right.
+
+With only 91 nodes, a rigorous power-law claim is not possible---\citet{clauset2009powerlaw} show that reliable identification requires larger samples. What we can say is that the degree distribution is heavy-tailed relative to ER, the network is hub-dominated, and the two largest hubs account for a disproportionate share of all edges. This degree heterogeneity is what makes the network vulnerable to targeted attack.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{figures/degree_distribution_loglog.png}
+    \caption{Degree distribution on log-log axes: real alliance network vs.\ ER and BA null models.}
+    \label{fig:degree_dist}
+\end{figure}
+
+\subsection{Predicted Future Alliances}\label{sec:results_linkpred}
+
+Table~\ref{tab:predictions} lists the top predicted future alliances.
+
+\begin{table}[H]
+\centering
+\caption{Top 10 predicted future alliances by Jaccard coefficient and Adamic-Adar index.}
+\label{tab:predictions}
+\small
+\begin{tabular}{clclcc}
+\toprule
+\textbf{Rank} & \textbf{Organization A} & \textbf{Type} & \textbf{Organization B} & \textbf{Type} & \textbf{Jaccard} \\
+\midrule
+1 & \'Antrax & Armed Wing & Mando Sur GN & Armed Wing & 1.000 \\
+2 & Barredora 24/7 & Cell & P\'aez & Cell & 1.000 \\
+3 & Reina del Sur & Undocumented & Juan L.\ (Moco) & Cell & 1.000 \\
+4 & Trevi\~no & Faction & Tropa del Infierno & Armed Wing & 1.000 \\
+5 & Cab.\ Templarios & Regional Cartel & Paco Pacas & Cell & 1.000 \\
+6 & Cab.\ Templarios & Regional Cartel & Mayas & Cell & 1.000 \\
+7 & Cab.\ Templarios & Regional Cartel & Blancos de Troya & Cell & 1.000 \\
+8 & Mayas & Cell & Paco Pacas & Cell & 1.000 \\
+9 & Mayas & Cell & Blancos de Troya & Cell & 1.000 \\
+10 & Blancos de Troya & Cell & Paco Pacas & Cell & 1.000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All 10 top-ranked pairs have a Jaccard coefficient of 1.0, meaning the two organizations share an identical set of neighbors---every ally of one is also an ally of the other, and neither has exclusive allies. They already operate in the same alliance orbit; the only thing missing is the direct edge between them.
+
+The Adamic-Adar index serves as a tiebreaker. \'Antrax and Mando Sur Gente Nueva score highest (AA = 1.44) because their shared neighbor has degree 2---a selective connection that carries more information than a shared neighbor with degree 20. Several of these predicted pairs make substantive sense: \'Antrax and Mando Sur Gente Nueva are both armed wings within the Sinaloa ecosystem, and the Caballeros Templarios cluster (ranks 5--10) involves a regional cartel and several cells in Michoac\'an that share a common ally but lack pairwise ties. These are the kind of alliances that geographic proximity and operational overlap would tend to produce. \citet{berlusconi2016link} found that equivalent topological predictions in Italian Mafia networks were later confirmed by intelligence agencies.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/link_prediction_distributions.png}
+    \caption{Distribution of Jaccard and Adamic-Adar scores across all non-edge pairs (non-zero values only). Red dashed lines mark the top-15 threshold.}
+    \label{fig:link_pred_dist}
+\end{figure}
+
+\subsection{Network Resilience}\label{sec:results_resilience}
+
+\subsubsection{Single Node Removal: CJNG}
+
+Table~\ref{tab:removal} reports the structural impact of removing CJNG (El Mencho), the node with the highest degree and betweenness centrality.
+
+\begin{table}[H]
+\centering
+\caption{Alliance network metrics before and after removal of CJNG.}
+\label{tab:removal}
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Metric} & \textbf{Before} & \textbf{After} & \textbf{$\Delta$} \\
+\midrule
+Nodes & 91 & 67 & $-24$ \\
+Edges & 91 & 63 & $-28$ \\
+Density & 0.0222 & 0.0285 & $+0.0063$ \\
+Components & 8 & 10 & $+2$ \\
+LCC Size & 50 & 26 & $-24$ \\
+Diameter & 8 & 3 & $-5$ \\
+Avg.\ Path Length & 3.30 & 2.14 & $-1.15$ \\
+Clustering $C$ & 0.0356 & 0.0632 & $+0.0276$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Removing CJNG drops the network from 91 to 67 nodes---a loss of 24 organizations, not just the one removed. CJNG accounts for 1 node, but its removal turns 23 former allies into isolates: organizations that were connected to the network only through CJNG. When the hub disappears, they exit the cooperation network entirely.
+
+Edges drop from 91 to 63---a loss of 28 alliance ties, or 31\% of all edges. The LCC shrinks from 50 to 26. Before removal, the main cluster held a slim majority of the network; after removal, less than a third.
+
+Two metrics move counterintuitively. Density increases from 0.022 to 0.029, and clustering rises from 0.036 to 0.063. This does not mean the network got stronger. The loosely connected periphery---nodes hanging on through CJNG---was pruned away, leaving a smaller, denser core of mutually allied organizations. The surviving network is more tightly knit precisely because the fragile fringe was amputated.
+
+The diameter drops from 8 to 3 and average path length from 3.30 to 2.14. Again, this reflects the compact surviving cluster, not improved connectivity---the distant nodes reachable only through CJNG are no longer part of the network at all. Figure~\ref{fig:node_removal} shows this plainly: the left panel has CJNG at the center with spokes radiating outward; the right panel shows those allies either gone or peripheralized.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/node_removal_before_after.png}
+    \caption{Alliance network before and after targeted removal of CJNG (El Mencho). Orange nodes are former CJNG allies; the red node in the left panel is CJNG itself.}
+    \label{fig:node_removal}
+\end{figure}
+
+\subsubsection{Sequential Targeted Attack}
+
+Figure~\ref{fig:sequential} traces the fragmentation curve under iterative removal of the top-5 hubs by degree.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/sequential_attack_lcc.png}
+    \caption{Network fragmentation under sequential targeted attack. Left: LCC size after each removal. Right: number of connected components.}
+    \label{fig:sequential}
+\end{figure}
+
+The first removal (CJNG) causes the largest single drop in LCC size. The second removal targets Sinaloa---the new highest-degree node after CJNG is gone---and further shrinks the LCC while increasing the component count. By the time the fifth hub has been removed, the network has fragmented into many small, disconnected clusters with no large coordinated structure remaining.
+
+The fragmentation curve is steep at the beginning and flattens after two or three removals. The marginal return of disruption is highest for the first hub removal. After two removals, the network is already badly fragmented and subsequent removals yield diminishing returns. For a law enforcement agency with limited operational capacity, this means concentrating effort on the top two or three hubs produces most of the achievable structural disruption.
+
+This pattern matches the theoretical prediction from \citet{albert2000error}: networks with heavy-tailed degree distributions tolerate random failures but collapse quickly under targeted attack on hubs. The cartel alliance network, with its extreme degree concentration around CJNG and Sinaloa, fits this pattern. And the real-world strategy observed in 2024--2026---sequentially targeting El Mencho, El Mayo, and Los Cuinis leadership---follows exactly the sequence our adaptive attack algorithm would prescribe.
+
+% ============================================================
+\section{Discussion}\label{sec:discussion}
+% ============================================================
+
+\subsection{Interpretation of Findings}
+
+Two organizations---CJNG and Sinaloa---hold the alliance network together. Between them they are allied with roughly half the non-isolate nodes. This concentration of connectivity around two rival hubs creates a bipolar structure: most smaller organizations are satellites of one hub or the other, and the rivalry between the two hubs (weight = 7, the maximum in the dataset) defines the principal axis of conflict.
+
+The brokerage analysis complicates this picture. Several local organizations (Talibanes, Uni\'on Tepito, El Abuelo, Viagras) rank high on betweenness despite having few alliances. They occupy bottleneck positions connecting subgraphs that have no alternative path between them. Disrupting these brokers would fragment communication channels in ways that raw degree counts do not predict---a point made by \citet{duijn2014relative} in the context of Dutch criminal networks.
+
+The specialty data shows that the alliance network connects organizations with different criminal portfolios. National drug trafficking cartels ally with local extortion groups, toll-collectors, and cells. This looks more like functional complementarity---allying with organizations that offer different capabilities---than homophily. The geographic analysis reinforces this: cross-state alliances link production regions to distribution corridors, suggesting that the alliance network partly maps supply-chain relationships.
+
+The temporal crime trends frame the stakes. The BACRIM 2020 snapshot was taken during a period of nearly 37,000 annual homicides, up sharply from 2017. That escalation coincides with the fragmentation of major cartels under the kingpin strategy---the same kind of hub removal our simulation models. \citet{calderon2015beheading} documented the mechanism: decapitation creates power vacuums that produce violence as factions compete for control. Our node-removal results quantify the structural damage, but they do not capture the violence that fills the vacuum. Fragmentation is not the same as pacification.
+
+\subsection{Connection to Recent Events (2024--2026)}\label{sec:recent}
+
+Events since 2020 track the structural vulnerabilities we identified with uncomfortable precision.
+
+\paragraph{Sinaloa Cartel.}
+Ismael ``El Mayo'' Zambada, co-founder of the Sinaloa Cartel, was arrested in Texas on July 25, 2024, reportedly lured to the US by Joaqu\'in Guzm\'an L\'opez. In August 2025, Zambada pled guilty to narcotics and money laundering charges. In the 2020 network, Sinaloa has the second-highest degree centrality. The arrest triggered a civil war between ``Los Chapitos'' (the Guzm\'an sons' faction) and Zambada loyalists (``Los Mayos''). In network terms, one high-degree node split into two or more competing lower-degree nodes. Alliance edges may have been replaced by rivalry edges as former collaborators took sides. The organizational unity that gave Sinaloa its hub status no longer holds.
+
+\paragraph{CJNG.}
+On February 22, 2026, Mexican military forces killed Nemesio Oseguera Cervantes (``El Mencho''), founder and leader of CJNG, in Jalisco. CJNG is the highest-degree and highest-betweenness node in the 2020 network. Our simulation predicts that removing it drops the LCC from 50 to 26 and turns 23 satellite organizations into isolates. Within hours of El Mencho's death, suspected CJNG operatives launched revenge attacks in Jalisco (vehicle bombs, transit blockades), and the US Consulate in Guadalajara issued a shelter-in-place order. Whether CJNG's alliance network actually fragmented as the model predicts is an empirical question, but the immediate destabilization is what hub removal in a centralized network looks like.
+
+\paragraph{Terrorist designation and mass extraditions.}
+In February 2025, the US designated both CJNG and the Sinaloa Cartel as Foreign Terrorist Organizations. These are the two dominant hubs in the 2020 network, and they share a rivalry tie with weight 7---the maximum in the dataset. Mass extraditions followed: 29 cartel figures in February 2025 and another 26 in August 2025. The dismantling of Los Cuinis---CJNG's strongest ally (alliance weight = 6)---further weakened the hub's position before El Mencho's eventual elimination. In February 2026, a \$10 million bounty was placed on Sinaloa Cartel leaders in Baja California, and the civil war continued to produce hundreds of casualties. The factions created by Zambada's arrest did not reconcile---the network did not heal.
+
+\subsection{Limitations}
+
+The main limitation is temporal. The 2020 snapshot captures alliances and rivalries at a single point in time. We cannot observe how ties form, dissolve, or shift in response to arrests, killings, or territorial changes. A longitudinal dataset would allow testing whether link predictions materialize and whether the fragmentation dynamics we simulate actually play out as modeled.
+
+The link prediction model uses topology alone. It ignores geography, economic complementarity, shared drug routes, and law enforcement pressure---all of which plausibly affect alliance formation. Adding node covariates to the prediction framework would likely improve accuracy.
+
+The data is necessarily incomplete. Covert relationships may go unrecorded, and the boundary of who counts as a distinct organization is sometimes blurry. \citet{sparrow1991application} identified incompleteness and fuzzy boundaries as fundamental challenges of criminal network analysis.
+
+We treat each organization as a unitary actor, but internal factions (Los Chapitos vs.\ Los Mayos within Sinaloa) may have distinct and even conflicting alliance structures. The 2024 Sinaloa civil war demonstrates this limitation in practice.
+
+Finally, our algorithms treat all alliance edges as equal. The original data includes alliance weights (number of states where the alliance is active), which could proxy for tie strength. A weighted analysis might produce different centrality rankings and different link predictions.
+
+\subsection{Future Work}
+
+Temporal network analysis over multiple BACRIM snapshots would allow tracking of alliance evolution and direct testing of our link predictions. Signed-link prediction models that incorporate rivalry edges---predicting both future alliances and future rivalries---are a natural extension. Stochastic Block Models could identify latent community structure and test whether alliances follow block patterns by region or specialty. Weighted analysis using the alliance strength variable, and geographic or attribute-based prediction combining topology with node covariates, are also worth pursuing.
+
+% ============================================================
+\section{Conclusion}\label{sec:conclusion}
+% ============================================================
+
+The cartel alliance network has 91 non-isolate organizations connected by 91 edges across 8 components. It is sparse ($\rho = 0.022$), clustered above random baselines ($C = 0.036$ vs.\ $C = 0$ for both null models), and dominated by two hubs: CJNG (degree centrality 0.31, betweenness 0.27) and Sinaloa (0.23, 0.07). National cartels hold hub and broker roles; local groups and cells sit at the periphery, often attached through a single tie to a national hub.
+
+The network does not match either null model. It clusters more than Erd\H{o}s--R\'enyi, is more fragmented than Barab\'asi--Albert, and has shorter average paths than both. The degree distribution is heavy-tailed relative to ER but does not fit a clean power law at this sample size.
+
+Link prediction via Jaccard and Adamic-Adar identifies 15 pairs with Jaccard = 1.0---organizations that share identical alliance neighborhoods but lack a direct tie. Many are armed wings or cells within the same factional orbit. Removing CJNG eliminates 28 edges (31\% of the total), turns 23 organizations into isolates, and cuts the LCC from 50 to 26. Sequential removal of the top-5 hubs produces a steep fragmentation curve that flattens after two or three steps.
+
+Events between 2024 and 2026 confirm that the nodes flagged as most central in the 2020 snapshot were the ones that law enforcement targeted, and that their removal produced consequences our simulation anticipated. A single static snapshot, analyzed with standard network tools, identified where the network was most fragile---and that fragility turned out to be real.
+
+% ============================================================
+% References
+% ============================================================
+\bibliographystyle{apalike}
+\bibliography{references}
+
+\end{document}
