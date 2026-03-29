@@ -1,682 +1,159 @@
-% ============================================================
-% Latent Pathways and Post-Disruption Reorganization
-% in Mexican Cartel Networks
-% ============================================================
-\documentclass[11pt, a4paper]{article}
+\documentclass[11pt]{article}
 
-% --- Packages ---
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
-\usepackage{lmodern}
+% Packages
 \usepackage[margin=1in]{geometry}
-\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{setspace}
+\usepackage{titlesec}
 \usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{tabularx}
+\usepackage{amsmath}
 \usepackage{hyperref}
-\usepackage{natbib}
-\usepackage{setspace}
-\usepackage{caption}
-\usepackage{subcaption}
 \usepackage{float}
-\usepackage{enumitem}
-\usepackage{xcolor}
-\usepackage{algorithm}
-\usepackage{algpseudocode}
-\usepackage{tikz}
-\usetikzlibrary{shapes.geometric, arrows.meta, positioning}
+\usepackage{natbib}
 
-\hypersetup{
-    colorlinks=true,
-    linkcolor=blue!60!black,
-    citecolor=blue!60!black,
-    urlcolor=blue!60!black,
+\setstretch{1.15}
+
+% Title formatting
+\titleformat{\section}{\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{1em}{}
+
+% Title info
+\title{Airbnb NLP project}
+\author{
+Xianriu Cao \and Elvis Casco \and Román Feria
 }
 
-\onehalfspacing
-\setlength{\parindent}{0pt}
-\setlength{\parskip}{0.6em}
 
-% ============================================================
+\date{\today}
+
 \begin{document}
 
-% --- Title ---
-\begin{center}
-    {\LARGE \bfseries Latent Pathways and Post-Disruption Reorganization\\[4pt]
-    in Mexican Cartel Networks}\\[18pt]
+\maketitle
 
-    Xianriu Cao \quad Elvis Casco \quad Cherryl Chico\\[12pt]
-
-    {\large Networks I: Concepts and Algorithms}\\[4pt]
-    {\large Winter 2026}\\[12pt]
-
-\end{center}
-
-\vspace{1em}
-
-% --- Abstract ---
 \begin{abstract}
-\noindent
-This paper analyzes the BACRIM 2020 signed network of 150 Mexican criminal organizations using centrality analysis, null-model comparison, link prediction, and targeted node-removal simulation. The alliance network is sparse, clustered above random baselines, and dominated by two hubs (CJNG and Sinaloa). A dyadic logistic model incorporating geography, shared rivalries, and specialty outperforms topology-only link prediction (AUC 0.73 vs.\ chance). Targeted removal of CJNG fragments the network into multiple disconnected components, consistent with theoretical predictions for heavy-tailed topologies. Events between 2024 and 2026, including the arrest of El Mayo Zambada, the killing of El Mencho, and mass extraditions, track the structural vulnerabilities flagged by this static 2020 snapshot.
+This project uses natural language processing (NLP) to analyze Airbnb reviews in Barcelona in order to identify the factors that guests value most and to provide practical insights for real estate investors and Airbnb hosts. Drawing on review data collected over a specified period, the study examines how guests evaluate their experiences and which dimensions are most closely associated with satisfaction. The methodology combines TF--IDF, LDA topic modeling, and supervised machine learning. TF--IDF is used to represent the textual data, LDA to extract the main themes from the review corpus, and a classification model to predict which topics guests value the most. The findings suggest that guests focus primarily on host interaction, room quality, location and accessibility, and comfort and amenities, ranked in that order of importance. The project therefore offers a data-driven perspective on guest preferences in Barcelona's short-term rental market.
 \end{abstract}
 
-\newpage
+\section{Introduction}
 
-% ============================================================
-\section{Introduction}\label{sec:intro}
-% ============================================================
+\subsection{Background}
+This project is motivated by the growing importance of the short-term rental market in contemporary urban economies. In Barcelona, tourism plays a central economic role, and platforms such as Airbnb have become a significant part of the accommodation sector and an increasingly relevant consideration for property owners and investors. At the same time, the expansion of real estate investment has intensified interest in understanding which property characteristics are most likely to generate positive guest experiences and sustain competitive performance in the market.
 
-\subsection{Context and Motivation}
+In this context, guest reviews represent a particularly valuable source of evidence. Unlike numerical ratings alone, textual reviews provide detailed and direct accounts of what visitors appreciated or criticized during their stay. They therefore make it possible to identify the factors that most strongly shape guest satisfaction, such as the quality of host interaction, room conditions, location, and overall comfort.
 
-Organized crime is a relational phenomenon. Alliances and rivalries among criminal organizations shape who controls territory, who moves product, and where violence concentrates. In Mexico, drug cartels form webs of cooperation and competition that have contributed to over 290,000 homicides and 175,000 disappearances between 2012 and 2021 \citep{inegi2022}. Understanding the structure of these webs is presented here as an academic exercise grounded in real policing challenges, with potential relevance for disruption strategy, intelligence prioritization, and policy design.
+The analysis of reviews through natural language processing offers a systematic and data-driven way to uncover these patterns at scale. \citet{safari2025sentiment} classified the sentiment of reviews across six U.S.\ regions and found that more than 90\% of them are positive, and that what matters for host success is actually the polarity of reviews rather than how many reviews a listing has. Similarly, \citet{becerra2025reviews} showed that the sentiment expressed in reviews has a stronger effect on Airbnb prices than quantitative metrics like star ratings. \citet{perezsanchez2023sustainable} went further by building a price prediction model that combines machine learning with sentiment scores from review text.
 
-The BACRIM 2020 dataset \citep{prietocuriel2023bacrim} provides a strong empirical base, a signed network of 150 Mexican criminal organizations where positive ties denote alliances and negative ties denote rivalries. Yet a static map alone cannot answer key analytical questions. Is the observed structure systematic or random? Which currently disconnected pairs are most likely to form future alliances? How does the network change when high-centrality actors are removed?
+This document seeks to contribute practical insights for Airbnb hosts and prospective investors by showing how guest preferences are expressed in reviews and which dimensions appear to matter most in Barcelona's short-term rental market.
 
-Prior work provides the methodological foundation for addressing these questions. Network studies of criminal organizations emphasize brokerage, clustering, and degree heterogeneity as core structural features \citep{morselli2009inside, sparrow1991application}. Signed-network research formalizes balance mechanisms relevant to alliance-rivalry systems \citep{heider1946attitudes, cartwright1956structural, leskovec2010predicting}. Robustness literature explains why hub-targeted interventions can produce disproportionate fragmentation \citep{albert2000error, duijn2014relative}. Link-prediction research defines the topological metrics used to infer likely future ties \citep{libennowell2007link, berlusconi2016link}. For Mexico specifically, BACRIM and related studies provide empirical context on territorial competition and fragmentation dynamics \citep{prietocuriel2023bacrim, coscia2012knowing, calderon2015beheading}.
+\subsection{Main Idea}
+The main aim of this project is to analyze Airbnb reviews from Barcelona in order to identify the principal dimensions of the guest experience reflected in customer feedback.
 
-Our contribution is to analyze a contemporary cartel network dataset, enriched with specialty attributes from DEA assessments and open-source intelligence, using graph-topological analysis, null-model benchmarking, alliance link prediction, and targeted-disruption simulations to address the following research problems:
+Barcelona is a particularly interesting case for studying Airbnb, and it has been used as a study site in a number of papers. With over 12 million international tourists visiting each year, the city faces intense pressure from short-term rentals, and this has made it one of the most regulated Airbnb markets in Europe. Recent text mining work on Airbnb data from Mediterranean cities, including Barcelona, has confirmed the richness and diversity of review content in these settings \citep{fernandezmorales2025mapping}.
 
-\begin{enumerate}[label=\textbf{RP\arabic*:}, leftmargin=2.5em]
-    \item What structural properties characterize the cartel alliance network, and how does it differ from random baselines?
-    \item Which cartel pairs are most likely to form future alliances, and do non-topological features (geography, rivalry, specialty) improve prediction over topology alone?
-    \item How does targeted removal of central hubs fragment the network, and how does the surviving network plausibly reorganize?
-\end{enumerate}
+On the regulatory side, Barcelona's city council launched PEUAT in 2017, a special urban plan that essentially froze the number of new short-term rental licenses in high-density zones \citep{ajuntament2017peuat}. However, enforcement has remained a challenge, and unlicensed listings continue to appear on the platform despite inspection efforts \citep{seguillinares2019monitoring}. This regulatory tension makes Barcelona an especially relevant setting for analyzing what guests and hosts discuss in reviews, as it may shape the kinds of experiences that are reported.
 
-This paper is organized as follows. Section~\ref{sec:data_main} describes the data and contextual overview. Section~\ref{sec:methods} presents the analytical methods. Section~\ref{sec:results} reports findings on network structure, alliance prediction, and disruption scenarios. Section~\ref{sec:discussion} interprets these results in light of recent developments, and Section~\ref{sec:conclusion} concludes with limitations and future directions.
+The data for this project comes from Inside Airbnb \citep{cox2016airbnb}, an open data initiative that scrapes and publishes listing and review data for cities around the world, including Barcelona.
 
+Using natural language processing techniques, the study seeks to uncover the dominant themes that emerge from the review corpus and to assess their relative importance. We hypothesize that guest evaluations are structured around a limited number of recurring themes and that these themes do not contribute equally to the overall perception of a stay. More specifically, we expect interpersonal and experiential factors, such as host interaction and room quality, to be more prominent than supplementary aspects such as comfort and amenities. In this way, the project aims to provide a clearer understanding of what guests value most in Barcelona's short-term rental market.
 
-% ============================================================
-\section{Data and Context}\label{sec:data_main}
-% ============================================================
+\subsection{Motivation}
+This topic is important from both a practical and a methodological perspective. From a practical point of view, understanding what guests value most in Airbnb accommodation can help hosts improve the quality of their service and enable prospective investors to make more informed decisions about which property characteristics are likely to matter in a competitive short-term rental market. In a city such as Barcelona, where tourism plays a major economic role, identifying the factors that shape guest evaluations is particularly relevant for understanding how short-term rentals create value.
 
-\subsection{Collection and Preprocessing}\label{sec:data}
+From a methodological perspective, this project is motivated by the potential of natural language processing to extract meaningful patterns from large volumes of unstructured textual data. The analysis begins with TF--IDF, which is used to transform the review corpus into a document-term matrix and to represent the relative importance of words across the dataset. LDA is then applied to identify the main latent topics that structure guest reviews. Finally, these topics are analyzed in order to compare their relative prominence and to determine which dimensions of the guest experience appear most central in customer feedback. Rather than establishing causal relationships, this approach provides a systematic way to uncover and interpret the themes that guests emphasize most strongly in Barcelona's Airbnb market.
 
-We utilize the BACRIM 2020 dataset \citep{prietocuriel2023bacrim}, a publicly available criminal-network dataset that provides node and edge information for Mexican cartel organizations. The dataset includes three primary files:
+\section{Data}
 
-\begin{itemize}[leftmargin=2em]
-    \item \texttt{BACRIM2020\_Nodes.csv} --- (node data) 150 cartel organizations with group name, state, and short name.
-    \item \texttt{BACRIM2020\_Alliances.csv} --- (edge data) alliance ties with positive weights representing the number of Mexican states where the alliance is active.
-    \item \texttt{BACRIM2020\_Rivals.csv} --- (edge data) rivalry ties with negative weights.
-\end{itemize}
+\subsection{Data Sources}
+The dataset used in this study was obtained from Inside Airbnb, an open-access platform that provides detailed information on Airbnb listings and reviews. This source is particularly well suited to our analysis because it offers large-scale, real-world data on guest experiences and on the characteristics of the short-term rental market in Barcelona.
 
-\noindent Because BACRIM 2020 provides the core network structure but not all attributes required for our analyses (e.g., organizational specialties and broader violence context), we supplement it with the following additional sources:
+\subsection{Exploratory Data Analysis (EDA)}
+Before applying text mining techniques, we performed an exploratory analysis of the dataset in order to better understand its structure and general characteristics. Exploratory data analysis helps identify potential issues in the data, such as missing values, extremely short or long reviews, and irregularities in the textual content.
 
-\begin{itemize}[leftmargin=2em]
-    \item \texttt{BACRIM2020\_Nodes\_With\_Specialties.csv} --- (node data) node-level content that extends BACRIM organizations with organizational type (National Cartel, Regional Cartel, Local, Cell, Toll-Collector), primary specialty, activity list, and drug portfolio. These specialty attributes were compiled from multiple external references and harmonized to BACRIM entities, with row-level source attribution (e.g., DEA NDTA 2024/2025, CRS report R41576, and InSight Crime profiles \citep{dea2024,dea2025,crsR41576,insightcrimeProfiles}).
-    \item \texttt{Trends2012\_2021.csv} --- (context data, non-network) annual counts of homicides, missing persons, and arrests in Mexico from INEGI \citep{inegi2022}.
-\end{itemize}
+In this stage, we focused on examining the basic properties of the review corpus. This included inspecting the number of observations, exploring examples of the review text, and analyzing the distribution of review lengths. Studying the length of reviews can provide useful insights into how users typically describe their experiences on the platform and whether the dataset contains outliers that may affect the analysis.
 
-\noindent To build the dataset, we first combine the two BACRIM 2020 edge datasets (alliances and rivalries). Each record is mapped to a common organization list, producing a unified tie table with a consistent node reference scheme. Next, we remove duplicate edges by writing each undirected pair in a fixed order $(\min(u,v), \max(u,v))$, so repeated or reversed pairs are treated as the same relationship. Isolate nodes (organizations with no alliance ties) are removed from the alliance-only network for structural analysis. Finally, we construct two graphs:
-\begin{enumerate}[leftmargin=2em]
-    \item \textbf{$G_{\text{signed}}$} (Signed Master Graph): an undirected graph where each alliance edge carries weight $+1$ and each rivalry edge carries weight $-1$.
-    \item \textbf{$G_{\text{alliance}}$} (Alliance Subgraph): the positive-edge subgraph used for centrality, link prediction, and resilience tasks.
-\end{enumerate}
+Additionally, we analyzed the most frequent words appearing in the corpus. This provided an initial overview of the dominant vocabulary used by guests when describing their stays. Such insights can highlight commonly discussed aspects of Airbnb experiences, such as location, cleanliness, communication with the host, or the overall quality of the accommodation.
 
-\noindent All code, data, and outputs required to replicate this study are available at \url{https://github.com/ElvisCasco/cartel-alliance-prediction}.
+The results of this exploratory analysis helped guide the preprocessing and modeling steps that follow, ensuring that the text mining techniques were applied to a well-understood and properly prepared dataset.
 
-\subsection{Contextual Overview}\label{sec:context}
+The dataset consists of Airbnb reviews from Barcelona collected over the selected period of analysis. Because the reviews were originally written in multiple languages, the preprocessing stage began with translation into English in order to ensure linguistic consistency across the corpus. Variables not required for the study were then removed, and the final dataset was reduced to two essential fields: the review identifier and the review text.
 
-The BACRIM 2020 network is a snapshot from a period of historically high violence. INEGI data records a sharp escalation beginning in 2017, coinciding with the intensification of Mexico's kingpin strategy and the fragmentation of major cartels. The 2020 snapshot captures the network at roughly 36,800 annual homicides and 22,900 disappearances, near-peak levels. Network fragmentation driven by law enforcement operations and inter-cartel competition fuels this violence directly, as splinter groups fight for territorial control \citep{calderon2015beheading}. Figure~\ref{fig:crime_trends} plots these trends with the BACRIM snapshot year marked.
+One important finding is that the majority of reviews are relatively short. On the one hand, this suggests that guests often express their evaluations in a concise and selective manner, focusing mainly on the aspects of the stay they considered most memorable or most important. On the other hand, the brevity of many reviews also creates a methodological challenge for topic modeling, since LDA generally performs more effectively on longer documents that contain richer contextual information. To address this issue, the corpus was carefully preprocessed and the number of topics was restricted to a small and interpretable set, allowing the analysis to capture broad thematic patterns rather than highly specific distinctions.
 
+In addition to review length, the EDA examined the frequency distribution of words and the most common terms in the corpus, thereby identifying the dominant lexical patterns that inform the later stages of the analysis.
+
+% Example figure placeholder
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.85\textwidth]{figures/crime_trends_2012_2021.png}
-    \caption{Mexican crime trends, 2012--2021. The vertical dashed line marks the BACRIM 2020 snapshot year. Source: INEGI \citeyearpar{inegi2022}.}
-    \label{fig:crime_trends}
+    % \includegraphics[width=0.7\textwidth]{eda_plot.png}
+    \caption{Example EDA figure.}
+    \label{fig:eda}
 \end{figure}
 
-The 150 organizations vary widely in scale and function, from national cartels operating across multiple states to local cells controlling a single neighborhood. Drug trafficking dominates as the primary specialty, but organizations also specialize in extortion, fuel theft, and drug retail. Methamphetamine and fentanyl are the most common drug portfolio entries, consistent with DEA 2024--2025 assessments. Figure~\ref{fig:org_profiles} summarizes this composition.
+\section{Methodology}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{figures/organizational_profiles.png}
-    \caption{Organizational composition of the BACRIM 2020 network: type distribution, primary criminal specialty, and drug portfolio.}
-    \label{fig:org_profiles}
-\end{figure}
+\subsection{Sentiment Analysis}
+Sentiment analysis has been used extensively in tourism research to make sense of large volumes of review text. Among the most popular tools for this is VADER, a lexicon-based model designed for social media text that assigns polarity scores to sentences \citep{hutto2014vader}. It is particularly attractive because it does not require labeled training data and works reasonably well out of the box.
 
-Of these 150 organizations, 91 have at least one alliance tie, forming $G_{\text{alliance}}$ with exactly 91 edges, barely 2\% of all possible alliances (Table~\ref{tab:basic_stats}). The network splits into 8 components; the largest holds 50 nodes (55\%), with diameter 8 and average path length 3.30. The global clustering coefficient ($C = 0.036$) is low in absolute terms but, as we show in Section~\ref{sec:results_null}, considerably higher than random baselines.
+One recurring issue in the Airbnb context is the so-called positivity bias: the overwhelming majority of reviews tend to be positive, which creates a skewed distribution. This is a problem for any classification model, since the negative class is severely underrepresented. Common strategies to deal with this include class weighting and oversampling techniques \citep{he2009learning}, both of which are used in practice across the literature.
 
-\begin{table}[H]
-\centering
-\caption{Basic statistics of the alliance network.}
-\label{tab:basic_stats}
-\small
-\begin{tabular}{ll}
-\toprule
-\textbf{Metric} & \textbf{Value} \\
-\midrule
-Nodes ($N$) & 91 \\
-Edges ($E$) & 91 \\
-Density ($\rho$) & 0.0222 \\
-Global Clustering Coefficient ($C$) & 0.0356 \\
-Diameter (LCC) & 8 \\
-Average Path Length (LCC) & 3.30 \\
-Connected Components & 8 \\
-Largest Component Size & 50 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\citet{santos2022expressing} looked at Airbnb reviews in Fortaleza, Brazil, and identified the main themes driving satisfaction and dissatisfaction, while \citet{agarwal2024investigating} took a more technical approach, combining NLP with Random Forest and GIS to segment listings by review-based sentiment, specifically trying to get around the positivity bias in numerical scores. Outside of Airbnb, it is also worth mentioning the work of \citet{kaya2024analysing}, who compared Booking.com and Expedia using sentiment analysis and topic modeling. They found, for instance, that Booking.com reviews focused more on ease of use while Expedia users complained more about cancellation and refund issues. This kind of cross-platform comparison is useful for understanding whether the patterns we observe in Airbnb reviews are platform-specific or more general.
 
-Organizations concentrate in a handful of states (Jalisco, Michoac\'an, Guerrero, Tamaulipas, and Sinaloa) and the alliance edges split roughly evenly between same-state and cross-state ties (Figure~\ref{fig:geographic}). Same-state alliances reflect territorial cooperation, while cross-state alliances suggest supply-chain logic, with production hubs in one state allied with distribution nodes in another. Both proximity and long-range logistics shape the cooperation structure.
+\subsection{Overview of the Approach}
+Our methodological framework combines TF--IDF, LDA, and supervised learning to analyze the main dimensions of guest evaluations in Airbnb reviews. TF--IDF is first used to construct a weighted document-term matrix, allowing the textual corpus to be represented numerically according to the relative importance of terms across reviews. LDA is then applied to identify the five most prominent latent topics in the corpus, thereby capturing the principal thematic dimensions of the guest experience. These outputs are subsequently incorporated into a supervised learning framework. Using Random Forest with cross-validation, we assess how the document-term features and topic structure contribute to the analysis, with the aim of determining which topics are most strongly associated with guest evaluations. Taken together, these methods provide a systematic NLP-based approach to identifying the aspects of the Airbnb experience that appear most important to guests.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{figures/geographic_distribution.png}
-    \caption{Left: number of organizations per state (top 15). Right: same-state vs.\ cross-state alliances.}
-    \label{fig:geographic}
-\end{figure}
+\subsection{Preprocessing and Feature Extraction}
+Before any analysis can be performed on review text, a series of preprocessing steps are needed to clean the data. These typically include lowercasing, removing punctuation and stopwords, and applying either stemming or lemmatization to reduce words to their base forms \citep{manning2008introduction}. In a multilingual setting like Barcelona, where reviews come in Spanish, Catalan, French, English, and several other languages, an additional step is needed: translating everything to a common language, usually English. While translation inevitably introduces some noise, neural machine translation tools like Google Translate have reached a quality level where this is generally acceptable for downstream NLP tasks.
 
-Figure~\ref{fig:signed_network} separates alliance and rivalry edges into side-by-side panels using a shared force-directed layout. In the alliance panel, national cartels sit near the center with many local cells connected through a single edge to a hub, organizations that would become isolates upon its removal. CJNG's allies are scattered across multiple geographic clusters, while Sinaloa's are more geographically concentrated. In the rivalry panel, edges run between clusters rather than within them, consistent with structural balance theory \citep{cartwright1956structural}. The separation reveals a bipolar structure in which the two dominant hubs compete for the same satellite organizations, and most smaller groups are allied with one hub and rival to the other.
+\subsection{TF--IDF}
+Once the text is clean, it needs to be converted into numerical features. TF--IDF (Term Frequency--Inverse Document Frequency) is still one of the most common representations for this purpose, despite being over fifty years old in concept \citep{sparckjones1972statistical, ramos2003using}. A useful extension is to include bigrams and trigrams in the vocabulary, which allows the model to capture multi-word expressions like ``check in,'' ``public transport,'' or ``well equipped'' --- phrases that carry important meaning in the Airbnb domain but would be lost if words were treated individually.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{figures/signed_network_by_type.png}
-    \caption{BACRIM 2020 network separated by edge type. Left: alliance edges (green). Right: rivalry edges (red, dashed). Node color indicates organization type; node size is proportional to degree. Both panels share the same node positions.}
-    \label{fig:signed_network}
-\end{figure}
+TF--IDF was used in this study for two main purposes. First, it transformed the review corpus into a weighted document-term matrix, providing the numerical representation required for subsequent modeling. Second, it helped identify the terms that were most distinctive within the corpus, thereby supporting interpretation of the lexical patterns in guest feedback.
 
-Three patterns in this overview shape the methodology that follows. First, the network is sparse and hub-dominated, with connectivity depending on a few central nodes, which motivates centrality analysis and targeted-removal simulations. Second, the non-trivial clustering suggests that alliances are not random, calling for null-model benchmarking. Third, the geographic concentration and rivalry structure indicate that topology alone may not explain alliance formation, motivating a dyadic prediction model that incorporates geography, shared enemies, and organizational specialty alongside network features.
+TF--IDF assigns each term a weight based on its frequency within a document and its distribution across the corpus as a whole. Terms that appear frequently in a given review but relatively infrequently across other reviews receive higher weights, whereas terms that are common across the dataset receive lower weights. This makes TF--IDF useful for distinguishing general vocabulary from terms that are more informative or discriminative.
 
-\section{Methods}\label{sec:methods}
+The choice of TF--IDF parameters was guided by exploratory analysis. A term-frequency distribution graph was first generated in order to examine how word frequencies were distributed across the dataset. Particular attention was paid to points at which the frequency bins displayed a marked jump, as these shifts suggested a meaningful threshold between overly common terms and more informative vocabulary. On this basis, we set \texttt{min\_df = 200}, retaining only terms that appeared in at least 200 documents, and \texttt{max\_df = 0.8}, excluding terms that appeared in more than 80\% of documents. This helped reduce noise from extremely rare words while preventing excessively frequent terms from dominating the representation.
 
-All three research problems concern the cooperation structure, so we take $G_{\text{alliance}}$ as the primary object of analysis. Rivalries enter as predictive features rather than edges to be modeled, since post-disruption reorganization is driven by new alliances, not new enemies. Figure~\ref{fig:methods_flow} summarizes the pipeline.
+An additional advantage of the TF--IDF vectorizer is that it allows us to examine the attribute \texttt{vectorizer.idf\_}, which returns the inverse document frequency (IDF) values for each term in the learned vocabulary. Formally, the IDF of a term \( t \) is defined as
 
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    node distance=0.5cm and 0.5cm,
-    stage/.style={
-        rectangle, rounded corners=4pt, draw=blue!60!black, fill=blue!8,
-        text width=2.8cm, minimum height=1cm, align=center,
-        font=\small\bfseries
-    },
-    detail/.style={
-        rectangle, rounded corners=2pt, draw=gray!60, fill=gray!6,
-        text width=2.8cm, minimum height=0.9cm, align=center,
-        font=\scriptsize
-    },
-    arr/.style={-{Stealth[length=5pt]}, thick, green!50!black},
-    arrsigned/.style={-{Stealth[length=5pt]}, thick, red!70!black},
-    datbox/.style={
-        rectangle, rounded corners=4pt, draw=green!50!black, fill=green!8,
-        text width=2.8cm, minimum height=1cm, align=center,
-        font=\small\bfseries
-    },
-    signedbox/.style={
-        rectangle, rounded corners=4pt, draw=red!70!black, fill=red!8,
-        text width=2.8cm, minimum height=1cm, align=center,
-        font=\small\bfseries
-    }
-]
+\[
+\mathrm{IDF}(t) = \log\left(\frac{N}{\mathrm{DF}(t)}\right) + 1
+\]
 
-% Row 1: Data sources, centered
-\node[datbox] (galliance) {$G_{\text{alliance}}$\\Alliance Subgraph};
-\node[signedbox, right=0.8cm of galliance] (gsigned) {$G_{\text{signed}}$\\Signed Master Graph};
+where \( N \) is the total number of documents in the corpus, and \( \mathrm{DF}(t) \) is the number of documents in which term \( t \) appears.
 
-% Row 2: all four stages
-\node[stage, below=1.2cm of galliance, xshift=-1.65cm] (s1) {Stage 1\\Structure};
-\node[stage, right=0.5cm of s1] (s2) {Stage 2\\Link Prediction};
-\node[stage, right=0.5cm of s2] (s3) {Stage 3\\Resilience};
-\node[stage, right=0.5cm of s3] (s4) {Stage 4\\Optimal Targeting};
+The IDF measures how rare or informative a term is across the dataset. In our corpus, terms such as ``apartment'' and ``stay'' appear in a large share of reviews and therefore receive relatively low IDF values, indicating that they belong to the general vocabulary of Airbnb reviews rather than to any specific dimension of guest satisfaction. By contrast, less frequent terms tend to have higher IDF values and are therefore more useful for identifying distinctive aspects of the guest experience. Since \texttt{vectorizer.idf\_} captures only the global importance of a term across documents, it should be interpreted together with term frequency, as shown in the standard TF--IDF relationship:
 
-% Row 3: descriptions
-\node[detail, below=0.35cm of s1] (d1) {Degree \& betweenness centrality; ER/BA null models};
-\node[detail, below=0.35cm of s2] (d2) {Jaccard, Adamic-Adar, dyadic logistic regression};
-\node[detail, below=0.35cm of s3] (d3) {Single \& sequential targeted node removal};
-\node[detail, below=0.35cm of s4] (d4) {Post-disruption rewiring; optimal target set};
+\[
+\mathrm{TF\text{-}IDF} = \mathrm{TF} \times \mathrm{IDF}.
+\]
 
-% Arrows: Data to stages
-\draw[arr] (galliance.south) -- (s1.north);
-\draw[arr] (galliance.south) -- (s2.north);
-\draw[arrsigned] (gsigned.south) -- (s2.north);
-\draw[arr] (galliance.south) -- (s3.north);
-\draw[arr] (galliance.south) -- (s4.north);
-\draw[arrsigned] (gsigned.south) -- (s4.north);
+Overall, TF--IDF provided both the weighted textual representation required for later modeling and a useful basis for identifying the vocabulary that was most informative in the review corpus.
 
-% Arrows: Row 2 horizontal
-\draw[arr] (s1) -- (s2);
-\draw[arr] (s2) -- (s3);
-\draw[arr] (s3) -- (s4);
+\subsection{LDA}
+Latent Dirichlet Allocation, or LDA \citep{blei2003latent}, is probably the most widely used method for discovering topics in collections of documents in an unsupervised way. The basic idea is that each document is a mixture of topics, and each topic is characterized by a distribution over words. One of the main practical challenges with LDA is deciding how many topics to extract; there is no single correct answer: coherence scores \citep{roder2015exploring} provide a quantitative guide, but ultimately the topics also need to make sense to a human reader.
 
-\end{tikzpicture}
-\caption{Analytical pipeline. $G_{\text{alliance}}$ feeds all four stages; $G_{\text{signed}}$ supplies rivalry-based features to the logistic model in Stages~2 and~4.}
-\label{fig:methods_flow}
-\end{figure}
+Several studies have applied LDA specifically to Airbnb reviews with interesting results. \citet{jang2020determinants} ran it on more than a million reviews from New York City and managed to extract 43 distinct topics, which they grouped into categories like location, unit characteristics, host quality, and general evaluations. Working with a smaller but still substantial dataset, \citet{chong2020comparative} compared reviews from Hong Kong (about 186,000) and Singapore (about 94,000), and found notable differences: 12 topics emerged for Hong Kong versus only 5 for Singapore, pointing to cross-cultural variation in what guests choose to write about. \citet{luo2022visual} proposed combining topic modeling with sentiment analysis to build a visual recommendation system for peer-to-peer accommodation.
 
-\subsection{Stage 1: Structural Characterization}\label{sec:stage1_methods}
+What these studies have in common is that the topics tend to revolve around a few recurring dimensions: the physical property and its amenities, the host and communication, the location and its accessibility, and the overall value for money. This consistency across different cities and datasets suggests that the method is capturing something real about what guests care about.
 
-Addressing RP1 requires identifying which organizations occupy structurally critical positions and determining whether the observed topology departs from random baselines. We apply centrality analysis for the former and null-model comparison for the latter.
+We sought to determine which values for \texttt{min\_df} and \texttt{max\_df} would yield the highest coherence score. We therefore experimented with different values and different numbers of topics. The coherence score did not vary substantially across parameter combinations, so we selected a number of topics that produced the most interpretable groupings according to human judgment.
 
-\subsubsection{Centrality Measures}\label{sec:centrality_methods}
+\subsection{Supervised Learning}
+While lexicon-based tools like VADER are useful for quick sentiment scoring, supervised machine learning models trained on labeled data tend to be more accurate when enough training examples are available. The use of TF--IDF features with classifiers like Logistic Regression and Random Forest is a well-tested combination in NLP \citep{pang2002thumbs, liu2012sentiment}.
 
-We compute two centrality measures on $G_{\text{alliance}}$. Degree centrality identifies hubs (many alliances), while betweenness centrality identifies brokers (nodes that bridge otherwise disconnected clusters, even if their own alliance count is modest).
+Logistic Regression is often the starting point because of its interpretability: the model coefficients tell you directly which words are most associated with positive or negative reviews, which can be very informative \citep{jurafsky2023speech}. Random Forest, on the other hand, can pick up on non-linear interactions between features and provides its own feature importance measure \citep{breiman2001random}. In practice, both models tend to perform reasonably well on review classification tasks, though Logistic Regression has the edge when it comes to understanding \textit{why} the model makes a particular prediction.
 
-For a node $v$ in an undirected graph with $N$ nodes, degree centrality normalizes the number of incident edges by the maximum possible:
-\begin{equation}\label{eq:degree}
-    C_D(v) = \frac{k_v}{N - 1}
-\end{equation}
-where $k_v = \sum_{j} A_{vj}$. Betweenness centrality measures how often a node lies on shortest paths between other pairs:
-\begin{equation}\label{eq:betweenness}
-    C_B(v) = \sum_{\substack{s \neq v \neq t \\ s, t \in V}} \frac{\sigma_{st}(v)}{\sigma_{st}}
-\end{equation}
-where $\sigma_{st}$ is the total number of shortest paths from $s$ to $t$ and $\sigma_{st}(v)$ is the number passing through $v$. We normalize by $\frac{(N-1)(N-2)}{2}$ and use Brandes' algorithm \citep{brandes2001faster}.
+Given the class imbalance problem mentioned earlier, where positive reviews vastly outnumber negative ones, it is important to use techniques like class weighting (e.g., setting \texttt{class\_weight="balanced"}) so that the model does not simply learn to predict ``positive'' for every review \citep{he2009learning}.
 
-\subsubsection{Null Models}\label{sec:null_models}
+\section{Results}
+% TODO: Present the main findings of the analysis.
 
-Sparsity or clustering is only informative if it differs from what random wiring would produce. We benchmark $G_{\text{alliance}}$ against two null models matched on $N$ and expected $E$, one based on purely random attachment (Erd\H{o}s--R\'enyi) and one based on preferential attachment to high-degree nodes (Barab\'asi--Albert).
+\section{Conclusion}
+% TODO: Summarize the main findings, restate the contribution of the project, and provide a short takeaway.
 
-In the Erd\H{o}s--R\'enyi $G(N,p)$ model, each of the $\binom{N}{2}$ possible edges exists independently with probability $p = 2E_{\text{real}} / (N(N-1))$, producing a Poisson degree distribution and expected clustering $C_{\text{ER}} = p$ \citep{erdos1959random}. In the Barab\'asi--Albert model, each new node attaches to $m$ existing nodes with probability proportional to current degree, producing a power-law distribution $P(k) \sim k^{-3}$; we set $m = \text{round}(E/N)$ to match the average degree \citep{barabasi1999emergence}. Following \citet{watts1998collective}, we compute the small-world coefficient:
-\begin{equation}\label{eq:smallworld}
-    \sigma = \frac{C_{\text{real}} / C_{\text{ER}}}{L_{\text{real}} / L_{\text{ER}}}
-\end{equation}
-where $C$ is the global clustering coefficient and $L$ is the average shortest path length in the largest connected component. A value $\sigma > 1$ indicates small-world properties: high local clustering combined with short global paths.
+\section{Limitations}
+% TODO: Discuss the main limitations of the data, methods, and interpretation of the results. You may also mention possible future improvements.
 
-\subsection{Stage 2: Link Prediction}\label{sec:stage2_methods}
-
-Given that the alliance structure is not random, the forces that shaped existing ties should help predict future ones. The outcome we predict is alliance formation, whether a currently unconnected pair will form a cooperative tie. Rivalry information enters not as an outcome but as a predictor, with shared enemies and signed-balance scores from $G_{\text{signed}}$ serving as features in the logistic model. We first apply two topological similarity metrics on $G_{\text{alliance}}$ alone, then fit a dyadic logistic model that adds rivalry-derived features alongside geography and specialty. If the topological metrics already perform well, non-network attributes add little value. If they do not, contextual factors are necessary and a richer model is justified.
-
-\subsubsection{Topological Metrics}\label{sec:topo_metrics}
-
-We predict future alliances among currently non-adjacent pairs using two topological similarity metrics \citep{libennowell2007link}. The Jaccard coefficient measures the fraction of the combined neighborhood that is shared:
-\begin{equation}\label{eq:jaccard}
-    J(u, v) = \frac{|\mathcal{N}(u) \cap \mathcal{N}(v)|}{|\mathcal{N}(u) \cup \mathcal{N}(v)|}
-\end{equation}
-The Adamic-Adar index weights each shared neighbor inversely by the log of its degree, so that low-degree shared neighbors contribute more \citep{adamic2003friends}:
-\begin{equation}\label{eq:adamicadar}
-    AA(u, v) = \sum_{w \in \mathcal{N}(u) \cap \mathcal{N}(v)} \frac{1}{\log |\mathcal{N}(w)|}
-\end{equation}
-
-\subsubsection{Dyadic Logistic Model}\label{sec:logistic_methods}
-
-Topology-only metrics ignore geography, shared enemies, and operational complementarity. To test whether these factors improve prediction, we treat each potential pair $(i,j)$ as a binary outcome and fit a logistic regression:
-\begin{equation}\label{eq:logistic}
-    P(\text{alliance} \mid i, j) = \frac{1}{1 + e^{-\eta_{ij}}}
-\end{equation}
-We define six dyadic features, summarized in Table~\ref{tab:features} and detailed below.
-
-\begin{table}[H]
-\centering
-\caption{Dyadic features for alliance prediction.}
-\label{tab:features}
-\small
-\begin{tabular}{cllll}
-\toprule
-\textbf{Symbol} & \textbf{Feature} & \textbf{Source} & \textbf{Type} & \textbf{Mechanism} \\
-\midrule
-$x_1$ & SharedAllies & $G_{\text{alliance}}$ & Count & Triadic closure \\
-$x_2$ & SharedRivals & $G_{\text{signed}}$ (rivalry edges) & Count & Structural balance \\
-$x_3$ & Complementarity & Node attributes & Binary & Specialty heterophily \\
-$x_4$ & SameState & Node attributes & Binary & Geographic proximity \\
-$x_5$ & BalanceScore & $G_{\text{signed}}$ (all edges) & Integer & Heider balance \\
-$x_6$ & DegreeProduct & $G_{\text{alliance}}$ & Count & Preferential attachment \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\noindent $x_1$ (SharedAllies). $|\mathcal{N}_{\text{alliance}}(i) \cap \mathcal{N}_{\text{alliance}}(j)|$, the number of organizations allied with both $i$ and $j$. Triadic closure predicts that pairs sharing many allies face social pressure toward direct cooperation.
-
-$x_2$ (SharedRivals). $|\mathcal{N}_{\text{rivalry}}(i) \cap \mathcal{N}_{\text{rivalry}}(j)|$, the number of organizations that are rivals of both $i$ and $j$, computed on the rivalry-only subgraph extracted from $G_{\text{signed}}$. Structural balance theory predicts that shared enemies push organizations toward alliance (``the enemy of my enemy is my friend'').
-
-$x_3$ (Complementarity). A binary indicator equal to 1 if $i$ and $j$ have different documented primary specialties, 0 otherwise. Pairs where either organization has an undocumented specialty are coded 0. The primary specialties in the dataset are Drug Trafficking, Drug Retail, Extortion, and Fuel Theft. This feature tests whether organizations with different criminal profiles are more likely to ally, for example a trafficking organization pairing with an extortion group to secure territory.
-
-$x_4$ (SameState). A binary indicator equal to 1 if both organizations operate in the same Mexican state. Geographic proximity lowers coordination costs and creates shared territorial incentives.
-
-$x_5$ (BalanceScore). For each common neighbor $w$ in $G_{\text{signed}}$, we add $+1$ if both edges $(i,w)$ and $(j,w)$ carry the same sign (both alliances or both rivalries), and $-1$ if they carry opposite signs. The sum captures Heider balance. Triads where all three pairs are consistent ($+/+/+$ or $-/-/+$) contribute positively, while imbalanced triads contribute negatively.
-
-$x_6$ (DegreeProduct). $\deg_{\text{alliance}}(i) \times \deg_{\text{alliance}}(j)$, the product of alliance-graph degrees. This operationalizes preferential attachment, where highly connected organizations are more likely to form new ties with each other.
-
-\noindent We fit two nested specifications to isolate the contribution of non-topological features:
-\begin{align}
-    \text{Topology-only:} \quad \eta_{ij}^{\text{topo}} &= \beta_0 + \beta_1 x_1 + \beta_6 x_6 \label{eq:logistic_topo} \\[4pt]
-    \text{Full model:} \quad \eta_{ij}^{\text{full}} &= \beta_0 + \sum_{k=1}^{6} \beta_k x_k \label{eq:logistic_full}
-\end{align}
-The topology-only model uses SharedAllies and DegreeProduct, features derived entirely from $G_{\text{alliance}}$. The full model adds rivalry, geographic, and specialty features from $G_{\text{signed}}$ and node attributes. With 91 edges among $\binom{91}{2} = 4{,}095$ possible pairs (2.2\% positive rate), we use class-weighted logistic regression to prevent trivial all-zero predictions.
-
-\subsubsection{Evaluation}\label{sec:eval_methods}
-
-To compare the four models (Jaccard, Adamic-Adar, topology-only logistic, full logistic), we use 5-fold edge-holdout cross-validation. The 91 alliance edges are randomly partitioned into five folds. In each iteration, one fold (20\% of edges) is held out and removed from $G_{\text{alliance}}$, and all four models are trained on the remaining graph. Features are recomputed on this reduced graph so that no model has access to the held-out edges during training. For evaluation, the held-out edges serve as true positives and are paired with an equal number of randomly sampled non-edges as true negatives. Each model scores the test pairs, with Jaccard and Adamic-Adar producing raw similarity values and the logistic models producing predicted probabilities. We measure performance using AUC-ROC, where 0.5 corresponds to random guessing and 1.0 to perfect separation of real alliances from non-edges, and report the mean and standard deviation across folds.
-
-\subsection{Stage 3: Network Resilience}\label{sec:stage3_methods}
-
-The centrality analysis shows that connectivity depends on a handful of hubs. We now ask what happens when those hubs are removed. We simulate targeted node removal on $G_{\text{alliance}}$, first a single hub, then the top hubs sequentially, to measure how quickly the cooperation structure fragments (RP3). Rivalry edges are excluded because we are interested in how the alliance network breaks apart, not in the rivalry topology.
-
-Algorithm~\ref{alg:single} describes single targeted removal and Algorithm~\ref{alg:sequential} describes sequential adaptive attack, where degree is recalculated after each removal to reflect the evolving topology. This adaptive approach is more realistic than simultaneous removal since law enforcement operations unfold sequentially.
-
-\begin{algorithm}[H]
-\caption{Single targeted removal}\label{alg:single}
-\begin{algorithmic}[1]
-\Require $G_{\text{alliance}}$
-\State $v^* \gets \arg\max_{v} C_D(v)$ \Comment{highest-degree node}
-\State Record pre-removal metrics ($N, E, \rho, C, $ components, LCC, diameter, $L$)
-\State Remove $v^*$ and all incident edges from $G_{\text{alliance}}$
-\State Prune new isolates
-\State Record post-removal metrics
-\State \Return $\Delta$ between pre- and post-removal metrics
-\end{algorithmic}
-\end{algorithm}
-
-\begin{algorithm}[H]
-\caption{Sequential adaptive attack}\label{alg:sequential}
-\begin{algorithmic}[1]
-\Require $G_{\text{alliance}}$, budget $k$
-\State $G_0 \gets G_{\text{alliance}}$
-\For{$t = 1, \ldots, k$}
-    \State $v_t \gets \arg\max_{v \in G_{t-1}} \deg_{G_{t-1}}(v)$ \Comment{recalculate degree}
-    \State Remove $v_t$ and all incident edges from $G_{t-1}$
-    \State Prune new isolates to obtain $G_t$
-    \State Record LCC size and component count of $G_t$
-\EndFor
-\end{algorithmic}
-\end{algorithm}
-
-\citet{albert2000error} showed that scale-free-like networks are robust to random failure but fragile under targeted attack. The critical removal fraction is $f_c = 1 - 1/(\kappa - 1)$, where $\kappa = \langle k^2 \rangle / \langle k \rangle$; for heavy-tailed distributions, $\kappa$ is large and targeted removal rapidly causes collapse. We equate node removal with organizational neutralization, use the alliance-only graph, assume no rewiring after removal, prune isolates, and treat edges as unweighted.
-
-\subsection{Stage 4: Optimal Targeting Under Rewiring}\label{sec:stage4_methods}
-
-Stage~3 holds the network static after removal, but surviving organizations seek new alliances to replace lost connections. A target that fragments the static network may be suboptimal if survivors rewire around the gap. We therefore combine the removal framework with the logistic model from Stage~2: for each candidate target set, we remove the nodes from $G_{\text{alliance}}$, predict new alliances using the model (which draws on rivalry features from $G_{\text{signed}}$), and evaluate the post-rewiring fragmentation.
-
-We formalize this as a combinatorial optimization problem. Let $S \subseteq V$ with $|S| = k$ be the set of nodes removed simultaneously, where $k$ is the operational budget. After removal, surviving organizations form new alliances according to the logistic model. The objective is:
-\begin{equation}\label{eq:optimal}
-    S^* = \arg\min_{S \subseteq V,\; |S| = k} \; \text{LCC}\Big(\text{Rewire}\big(G \setminus S,\; \hat{P},\; \tau\big)\Big)
-\end{equation}
-The parameter $\alpha \in \{0.25, 0.50, 0.75\}$ represents rewiring capacity, the fraction of lost edges the network can replace. Low $\alpha$ models a hostile enforcement environment and high $\alpha$ models a permissive one. Algorithm~\ref{alg:optimal} describes the procedure.
-
-\begin{algorithm}[H]
-\caption{Optimal targeting under rewiring}\label{alg:optimal}
-\begin{algorithmic}[1]
-\Require $G_{\text{alliance}}$, $G_{\text{signed}}$, logistic model $\hat{P}$, budget $k$, rewiring capacity $\alpha$
-\For{each candidate set $S \subseteq V$ with $|S| = k$}
-    \State $G' \gets G_{\text{alliance}} \setminus S$ \Comment{remove target nodes and incident edges}
-    \State Prune isolates from $G'$
-    \State $E_{\text{lost}} \gets E_{\text{original}} - E_{G'}$
-    \State Score all non-adjacent pairs in $G'$ using $\hat{P}$ with features from $G'$ and $G_{\text{signed}}$
-    \State Add the top $\lfloor \alpha \cdot E_{\text{lost}} \rfloor$ predicted edges to $G'$
-    \State $\text{LCC}(S) \gets$ size of largest connected component of $G'$
-\EndFor
-\State \Return $S^* = \arg\min_{S} \text{LCC}(S)$
-\end{algorithmic}
-\end{algorithm}
-
-For $k = 1$, there are 91 candidate removals and each evaluation involves scoring $\sim N^2/2$ non-edges, so we solve the problem exactly by exhaustive enumeration. We compare the optimal set against four baselines: top-$k$ by degree, top-$k$ by betweenness, degree-based with rewiring, and the mean over 200 random $k$-subsets.
-
-% ============================================================
-\section{Results}\label{sec:results}
-% ============================================================
-
-We report findings for each stage of the pipeline: structural characterization (Stage~1), link prediction (Stage~2), resilience (Stage~3), and optimal targeting under rewiring (Stage~4).
-
-\subsection{Stage 1: Structural Characterization}\label{sec:results_stage1}
-
-Table~\ref{tab:centrality} reports centrality rankings. CJNG dominates both measures (degree 0.31, betweenness 0.27), followed by Sinaloa (0.23, 0.07). After these two, degree drops to 0.067, confirming that the network is concentrated around two hubs. Talibanes, a local organization, ranks second in betweenness (0.10) despite modest degree (0.04), occupying a disproportionate share of shortest paths between clusters. Figure~\ref{fig:centrality_type} confirms that local groups overlap with national cartels on betweenness.
-
-\begin{table}[H]
-\centering
-\caption{Top 5 organizations by degree and betweenness centrality.}
-\label{tab:centrality}
-\small
-\begin{tabular}{llcc}
-\toprule
-\textbf{Organization} & \textbf{Type} & \textbf{Degree Centr.} & \textbf{Betweenness Centr.} \\
-\midrule
-CJNG & National Cartel & 0.3111 & 0.2684 \\
-Sinaloa & National Cartel & 0.2333 & 0.0680 \\
-Chapitos & Faction & 0.0667 & 0.0225 \\
-Uni\'on Tepito & Local & 0.0667 & 0.0572 \\
-Talibanes & Local & 0.0444 & 0.1041 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{figures/centrality_by_type.png}
-    \caption{Distribution of degree and betweenness centrality by organization type.}
-    \label{fig:centrality_type}
-\end{figure}
-
-Table~\ref{tab:null_models} tests whether this structure is systematic. Both null models produce $C = 0$ (no triangles), while the real network has $C = 0.036$, indicating that triadic closure is present and not an artifact of random wiring. The real network is more compact ($L = 3.30$ vs.\ 6.75 ER, 4.48 BA) due to hub dominance, yet more fragmented (LCC = 50 vs.\ 62 ER, 91 BA), reflecting geographic and factional divisions.
-
-\begin{table}[H]
-\centering
-\caption{Comparison of empirical alliance network with ER and BA null models.}
-\label{tab:null_models}
-\small
-\begin{tabular}{lccccc}
-\toprule
-\textbf{Network} & \textbf{Nodes} & \textbf{Edges} & \textbf{Clustering $C$} & \textbf{Avg.\ Path $L$} & \textbf{LCC Size} \\
-\midrule
-Real (Alliance) & 91 & 91 & 0.0356 & 3.30 & 50 \\
-Erd\H{o}s--R\'enyi & 91 & 77 & 0.0000 & 6.75 & 62 \\
-Barab\'asi--Albert & 91 & 90 & 0.0000 & 4.48 & 91 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The degree distribution (Figure~\ref{fig:degree_dist}) has a long right tail (CJNG at degree 28, Sinaloa at 21, then a sharp drop) that neither null model reproduces. With only 91 nodes a rigorous power-law fit is not possible \citep{clauset2009powerlaw}, but the distribution is heavy-tailed and hub-dominated, making the network vulnerable to targeted attack.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.75\textwidth]{figures/degree_distribution_loglog.png}
-    \caption{Degree distribution on log-log axes: real alliance network vs.\ ER and BA null models.}
-    \label{fig:degree_dist}
-\end{figure}
-
-\subsection{Stage 2: Link Prediction}\label{sec:results_stage2}
-
-All non-adjacent pairs are scored under the four models. Note that Jaccard and Adamic-Adar produce similarity scores rather than calibrated probabilities, and provide no intrinsic decision threshold. Given the sparsity of the alliance network, most pairs share no common neighbors, so both metrics assign a score of zero to the vast majority of non-edges.
-
-Tables~\ref{tab:logistic_coef_topo} and~\ref{tab:logistic_coef_full} report the logistic regression coefficients. The topology-only model (pseudo $R^2 = 0.076$) has only DegreeProduct as significant ($p < 0.001$). The full model (pseudo $R^2 = 0.144$) nearly doubles explanatory power: SameState dominates ($\beta = 1.73$, OR $= 5.66$, $p < 0.001$), DegreeProduct remains significant, and SharedRivals ($p = 0.062$) and BalanceScore ($p = 0.070$) are marginally significant. SharedAllies turns negative once geography is controlled for, and Complementarity is not significant ($p = 0.97$).
-
-\begin{table}[H]
-\centering
-\caption{Topology-only logistic model (Equation~\ref{eq:logistic_topo}).}
-\label{tab:logistic_coef_topo}
-\small
-\begin{tabular}{lcccc}
-\toprule
-\textbf{Feature} & \textbf{Coef.} & \textbf{Std.\ Err.} & \textbf{Odds Ratio} & \textbf{$p$-value} \\
-\midrule
-Intercept & $-4.106$ & 0.128 & 0.02 & $< 0.001$*** \\
-SharedAllies ($x_1$) & 0.301 & 0.231 & 1.35 & 0.193 \\
-DegreeProduct ($x_6$) & 0.036 & 0.005 & 1.04 & $< 0.001$*** \\
-\bottomrule
-\end{tabular}
-\vspace{4pt}
-
-{\footnotesize Note: McFadden pseudo $R^2 = 0.076$. \enspace *\,$p < 0.05$, \enspace **\,$p < 0.01$, \enspace ***\,$p < 0.001$.}
-\end{table}
-
-\begin{table}[H]
-\centering
-\caption{Full logistic model (Equation~\ref{eq:logistic_full}).}
-\label{tab:logistic_coef_full}
-\small
-\begin{tabular}{lcccc}
-\toprule
-\textbf{Feature} & \textbf{Coef.} & \textbf{Std.\ Err.} & \textbf{Odds Ratio} & \textbf{$p$-value} \\
-\midrule
-Intercept & $-4.418$ & 0.159 & 0.01 & $< 0.001$*** \\
-SharedAllies ($x_1$) & $-0.272$ & 0.299 & 0.76 & 0.363 \\
-SharedRivals ($x_2$) & 0.516 & 0.277 & 1.67 & 0.062 \\
-Complementarity ($x_3$) & 0.013 & 0.315 & 1.01 & 0.967 \\
-SameState ($x_4$) & 1.734 & 0.264 & 5.66 & $< 0.001$*** \\
-BalanceScore ($x_5$) & 0.359 & 0.198 & 1.43 & 0.070 \\
-DegreeProduct ($x_6$) & 0.036 & 0.006 & 1.04 & $< 0.001$*** \\
-\bottomrule
-\end{tabular}
-\vspace{4pt}
-
-{\footnotesize Note: McFadden pseudo $R^2 = 0.144$. \enspace *\,$p < 0.05$, \enspace **\,$p < 0.01$, \enspace ***\,$p < 0.001$.}
-\end{table}
-
-Figure~\ref{fig:link_pred_dist} presents the score distributions across all four models. The topological metrics yield non-zero values for only a small fraction of dyads, reflecting the sparsity of shared neighborhoods. The logistic models, by contrast, produce continuous probability distributions over the full set of non-adjacent pairs.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{figures/link_prediction_distributions.png}
-    \caption{Score distributions across all four link prediction models. Red dashed lines mark the top-5 threshold for each model.}
-    \label{fig:link_pred_dist}
-\end{figure}
-
-Table~\ref{tab:top5_all} compares the top-5 predicted pairs. Topological metrics surface peripheral satellites sharing a single ally (Jaccard = 1.0 means identical neighbor sets). Both logistic models instead predict alliances between major actors (Uni\'on Tepito--Sinaloa, Chapitos--CJNG, Noreste--CJNG), reflecting preferential attachment and geographic signals that topological metrics miss.
-
-\begin{table}[H]
-\centering
-\caption{Top 5 predicted alliances by each model.}
-\label{tab:top5_all}
-\small
-\begin{tabular}{llllc}
-\toprule
-\textbf{Model} & \textbf{Organization A} & \textbf{Type} & \textbf{Organization B} & \textbf{Score} \\
-\midrule
-\multicolumn{5}{l}{\textit{Jaccard}} \\
-& Nueva Plaza & Local & Guera & 1.000 \\
-& Nueva Plaza & Local & Rusos & 1.000 \\
-& Nueva Plaza & Local & Salazares & 1.000 \\
-& Nueva Plaza & Local & Emperatriz & 1.000 \\
-& Nueva Plaza & Local & Poniente o Laguna & 1.000 \\
-\midrule
-\multicolumn{5}{l}{\textit{Adamic-Adar}} \\
-& Golfo & Regional Cartel & Zetas VE & 2.164 \\
-& Talibanes & Local & Pelones & 1.821 \\
-& Viagras & Local & CJNG & 1.443 \\
-& Reina del Sur & Undocumented & Juan L.\ (Moco) & 1.443 \\
-& Uni\'on Tepito & Local & Sindicato Libertad & 1.443 \\
-\midrule
-\multicolumn{5}{l}{\textit{Logistic (topology)}} \\
-& Uni\'on Tepito & Local & Sinaloa & 1.000 \\
-& Chapitos & Faction & CJNG & 1.000 \\
-& Noreste & Regional Cartel & CJNG & 1.000 \\
-& Noreste & Regional Cartel & Sinaloa & 1.000 \\
-& Golfo & Regional Cartel & CJNG & 1.000 \\
-\midrule
-\multicolumn{5}{l}{\textit{Logistic (full)}} \\
-& Uni\'on Tepito & Local & Sinaloa & 1.000 \\
-& Chapitos & Faction & CJNG & 1.000 \\
-& Noreste & Regional Cartel & CJNG & 1.000 \\
-& Noreste & Regional Cartel & Sinaloa & 1.000 \\
-& Golfo & Regional Cartel & CJNG & 1.000 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Table~\ref{tab:auc} reports the cross-validation results that adjudicate between these approaches. Jaccard (AUC = 0.47) and Adamic-Adar (0.48) perform at chance level, and the topology-only logistic model (0.41) performs below chance. Only the full model (0.73) achieves meaningful discriminative power, with the improvement attributable to SameState and SharedRivals. These results indicate that alliance formation in this network is governed primarily by geographic proximity and shared enmity rather than by existing alliance topology. Accordingly, the full model is the specification carried forward into Stage~4 for post-disruption rewiring prediction.
-
-\begin{table}[H]
-\centering
-\caption{5-fold cross-validation AUC for link prediction models.}
-\label{tab:auc}
-\small
-\begin{tabular}{lcc}
-\toprule
-\textbf{Model} & \textbf{Mean AUC} & \textbf{Std AUC} \\
-\midrule
-Jaccard & 0.472 & 0.036 \\
-Adamic-Adar & 0.484 & 0.031 \\
-Logistic (topology) & 0.414 & 0.070 \\
-Logistic (full) & 0.725 & 0.057 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-
-
-\subsection{Stage 3: Network Resilience}\label{sec:results_resilience}
-
-We first remove CJNG (El Mencho), the node with the highest degree and betweenness centrality. Table~\ref{tab:removal} reports the structural impact. Removing CJNG drops the network from 91 to 67 nodes (23 former allies become isolates), with 31\% of edges lost and the LCC halved from 50 to 26. Density and clustering increase because the loosely connected periphery was pruned, leaving a smaller, denser core (Figure~\ref{fig:node_removal}).
-
-\begin{table}[H]
-\centering
-\caption{Alliance network metrics before and after removal of CJNG.}
-\label{tab:removal}
-\small
-\begin{tabular}{lccc}
-\toprule
-\textbf{Metric} & \textbf{Before} & \textbf{After} & \textbf{$\Delta$} \\
-\midrule
-Nodes & 91 & 67 & $-24$ \\
-Edges & 91 & 63 & $-28$ \\
-Density & 0.0222 & 0.0285 & $+0.0063$ \\
-Components & 8 & 10 & $+2$ \\
-LCC Size & 50 & 26 & $-24$ \\
-Diameter & 8 & 3 & $-5$ \\
-Avg.\ Path Length & 3.30 & 2.14 & $-1.15$ \\
-Clustering $C$ & 0.0356 & 0.0632 & $+0.0276$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{figures/node_removal_before_after.png}
-    \caption{Alliance network before and after targeted removal of CJNG (El Mencho). Orange nodes are former CJNG allies; the red node in the left panel is CJNG itself.}
-    \label{fig:node_removal}
-\end{figure}
-
-Extending this to sequential removal, Figure~\ref{fig:sequential} traces the fragmentation curve under iterative removal of the top-5 hubs by degree. The first removal (CJNG) causes the largest drop; the curve flattens after two or three removals, consistent with the theoretical prediction for heavy-tailed networks \citep{albert2000error}. The real-world enforcement sequence of 2024--2026, targeting El Mencho, El Mayo, and Los Cuinis leadership, follows the order our adaptive algorithm prescribes.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{figures/sequential_attack_lcc.png}
-    \caption{Network fragmentation under sequential targeted attack. Left: LCC size after each removal. Right: number of connected components.}
-    \label{fig:sequential}
-\end{figure}
-
-
-
-\subsection{Stage 4: Targeting and Rewiring}\label{sec:results_stage4}
-
-After removing CJNG, we recompute all 6 dyadic features on the 67-node surviving network and score every non-adjacent pair with the full logistic model. Figure~\ref{fig:rewiring} shows the top-10 predicted new alliances.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.95\textwidth]{figures/post_disruption_rewiring.png}
-    \caption{Surviving network after CJNG removal. Existing edges in gray; top-10 predicted new alliances as dashed green edges. Orange = former CJNG allies; red = Sinaloa.}
-    \label{fig:rewiring}
-\end{figure}
-
-The key question is whether former CJNG satellites are absorbed by Sinaloa (consolidation) or form independent clusters (fragmentation). The simulation identifies what is structurally most plausible, not what will occur. The optimal targeting analysis (Equation~\ref{eq:optimal}) solves for $k = 1$ across three rewiring capacities ($\alpha = 0.25, 0.50, 0.75$). Figure~\ref{fig:optimal} compares the optimal target against degree, betweenness, and random baselines.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{figures/optimal_targeting_comparison.png}
-    \caption{Post-rewiring LCC size by targeting strategy and budget $k$, across rewiring capacity levels $\alpha$. Lower is better (smaller surviving cooperation structure).}
-    \label{fig:optimal}
-\end{figure}
-
-If the optimal target differs from the highest-degree node, static centrality rankings are misleading once reorganization is accounted for. At low $\alpha$ (harsh enforcement) the strategies may converge; at high $\alpha$ (permissive environment) the gap widens as the network compensates for disruption.
-
-\subsection{Summary of Findings}\label{sec:results_summary}
-
-The four stages yield a consistent picture. The alliance network is sparse, hub-dominated, and clustered above random baselines (Stage~1). Topology alone cannot predict alliance formation, as geography and shared enemies are the primary drivers, with the full logistic model achieving AUC 0.73 against chance-level performance for all other models (Stage~2). Removing CJNG eliminates 31\% of edges and halves the largest component (Stage~3), and the sequential fragmentation curve matches theoretical predictions for heavy-tailed networks. When the surviving network is allowed to reorganize, the logistic model predicts rewiring patterns that may partially restore connectivity, raising the question of whether static targeting strategies remain optimal (Stage~4).
-
-% ============================================================
-\section{Discussion}\label{sec:discussion}
-% ============================================================
-
-The results paint a bipolar cooperation structure held together by two national hubs. CJNG and Sinaloa account for over half the alliance ties among non-isolate nodes, and their rivalry (weight 7, the dataset maximum) defines the principal axis of conflict. Most smaller organizations are satellites of one hub or the other. Yet degree is not the only dimension that matters: local organizations such as Talibanes and Uni\'on Tepito rank high on betweenness despite few alliances, occupying bottleneck positions whose disruption would fragment communication channels in ways that degree alone does not predict \citep{duijn2014relative}. Cross-state alliances link production regions to distribution corridors, partly mapping supply-chain relationships, while same-state alliances reflect territorial cooperation. The logistic model confirms this pattern, with SameState as the dominant predictor of alliance formation (OR $= 5.66$, $p < 0.001$).
-
-The link prediction results carry a methodological implication. In sparse, hub-dominated networks, topological similarity metrics perform at chance because most pairs share zero neighbors. Contextual features such as geography and shared enemies carry the predictive signal. This is consistent with \citet{berlusconi2016link}, who found that attribute-enriched models outperformed topology-only baselines in Italian Mafia networks. The practical consequence is that intelligence analysts predicting future alliances should prioritize geographic proximity and rivalry structure over alliance topology.
-
-The node-removal simulations quantify what the centrality analysis implies. Removing CJNG halves the largest component and isolates 23 satellite organizations; sequential removal of the top three hubs captures most of the achievable fragmentation. This matches the theoretical prediction for heavy-tailed networks \citep{albert2000error} and aligns with the real-world enforcement strategy observed between 2024 and 2026. However, \citet{calderon2015beheading} documented that decapitation creates power vacuums that produce violence. Our simulations quantify structural damage but do not capture the violence that fills the vacuum. Fragmentation is not pacification.
-
-Events since 2020 track the structural vulnerabilities identified in our analysis. Ismael ``El Mayo'' Zambada, co-founder of Sinaloa (the second-highest degree node), was arrested in Texas on July 25, 2024, triggering a civil war between Los Chapitos and Zambada loyalists. In network terms, one high-degree node split into competing lower-degree nodes with alliance edges replaced by rivalry edges. On February 22, 2026, Mexican military forces killed Nemesio Oseguera Cervantes (``El Mencho''), CJNG's leader and the highest-degree, highest-betweenness node in the 2020 network. Our simulation predicts that removing CJNG drops the LCC from 50 to 26 and turns 23 satellites into isolates. The immediate retaliatory attacks in Jalisco are consistent with hub removal in a centralized network. In February 2025, the US designated both CJNG and Sinaloa as Foreign Terrorist Organizations, and mass extraditions (29 figures in February, 26 more in August 2025) dismantled Los Cuinis, CJNG's strongest ally, before El Mencho's elimination. The factions created by Zambada's arrest did not reconcile; the network did not heal.
-
-% ============================================================
-\section{Conclusion}\label{sec:conclusion}
-% ============================================================
-
-This paper analyzed the BACRIM 2020 signed network of Mexican criminal organizations through a four-stage pipeline of structural characterization, link prediction, targeted-removal simulation, and optimal targeting under rewiring. The alliance network is sparse, clustered above random baselines, and dominated by two hubs whose removal fragments the cooperation structure. Topology alone cannot predict alliance formation. Geography and shared enemies are the primary drivers, and only a model incorporating these contextual features achieves meaningful predictive performance. Targeted hub removal produces fragmentation consistent with theoretical predictions for heavy-tailed networks, and post-disruption rewiring simulations identify which new alliances are structurally most plausible. Events between 2024 and 2026 confirm that the nodes flagged as most central were the ones law enforcement targeted, and that their removal produced consequences the simulation anticipated.
-
-Several limitations qualify these findings. The 2020 snapshot cannot capture how ties form or dissolve in response to enforcement actions, and the rewiring simulation assumes the same formation mechanisms apply after disruption. The data is necessarily incomplete, as covert relationships may go unrecorded and organizational boundaries are sometimes blurry \citep{sparrow1991application}. We treat each organization as a unitary actor, but internal factions (e.g., Los Chapitos vs.\ Los Mayos) may have distinct alliance structures, as the 2024 Sinaloa civil war demonstrated. All alliance edges are treated as equal, though the original weight data (number of active states) could proxy for tie strength and might produce different centrality rankings.
-
-These limitations point toward productive extensions. Temporal analysis over multiple BACRIM snapshots would allow direct testing of link predictions. ERGMs or STERGMs could formalize the same hypotheses with richer generative assumptions, and signed-link prediction (forecasting both alliances and rivalries) is a natural next step. The optimal targeting framework could be extended to sequential multi-round operations with inter-round rewiring, better reflecting the iterative nature of real enforcement campaigns. Despite these open questions, a single static snapshot analyzed with standard network tools and a dyadic formation model identified where the network was most fragile and how it would reorganize, information that proved consistent with the disruption events that followed.
-
-% ============================================================
-% References
-% ============================================================
 \bibliographystyle{apalike}
 \bibliography{references}
 
