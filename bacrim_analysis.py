@@ -339,26 +339,46 @@ degree_threshold = sorted(degrees.values(), reverse=True)[min(15, len(degrees)-1
 labels = {n: node_labels.get(n, n) for n in G_signed_viz.nodes()
           if degrees[n] >= degree_threshold}
 
-fig, ax = plt.subplots(1, 1, figsize=(14, 10))
+# --- Side-by-side: Alliance network (left) and Rivalry network (right) ---
+fig, axes = plt.subplots(1, 2, figsize=(18, 8))
+
+# Shared legend patches for organization types
+type_patches = [mpatches.Patch(color=c, alpha=0.7, label=t)
+                for t, c in type_color_map.items()]
+
+# Left panel: Alliance edges only
+ax1 = axes[0]
 nx.draw_networkx_edges(G_signed_viz, pos, edgelist=alliance_edges,
-                       edge_color="green", alpha=0.4, width=0.8, ax=ax)
-nx.draw_networkx_edges(G_signed_viz, pos, edgelist=rivalry_edges,
-                       edge_color="red", alpha=0.3, width=0.6,
-                       style="dashed", ax=ax)
+                       edge_color="green", alpha=0.4, width=0.8, ax=ax1)
 nx.draw_networkx_nodes(G_signed_viz, pos, node_size=node_sizes,
                        node_color=node_colors, alpha=0.7,
-                       edgecolors="k", linewidths=0.5, ax=ax)
+                       edgecolors="k", linewidths=0.5, ax=ax1)
 nx.draw_networkx_labels(G_signed_viz, pos, labels=labels,
-                        font_size=7, font_weight="bold", ax=ax)
+                        font_size=7, font_weight="bold", ax=ax1)
+alliance_legend = type_patches + [mpatches.Patch(color="green", alpha=0.5,
+                                                  label="Alliance Edge")]
+ax1.legend(handles=alliance_legend, loc="upper left", fontsize=8, ncol=2)
+ax1.set_title("Alliance Network", fontsize=13, fontweight="bold")
+ax1.axis("off")
 
-legend_patches = [mpatches.Patch(color=c, alpha=0.7, label=t)
-                  for t, c in type_color_map.items()]
-legend_patches.append(mpatches.Patch(color="green", alpha=0.5, label="Alliance Edge"))
-legend_patches.append(mpatches.Patch(color="red", alpha=0.4, label="Rivalry Edge"))
-ax.legend(handles=legend_patches, loc="upper left", fontsize=9, ncol=2)
-ax.set_title("BACRIM 2020: Signed Cartel Network (colored by organization type)",
-             fontsize=14, fontweight="bold")
-ax.axis("off")
+# Right panel: Rivalry edges only
+ax2 = axes[1]
+nx.draw_networkx_edges(G_signed_viz, pos, edgelist=rivalry_edges,
+                       edge_color="red", alpha=0.4, width=0.8,
+                       style="dashed", ax=ax2)
+nx.draw_networkx_nodes(G_signed_viz, pos, node_size=node_sizes,
+                       node_color=node_colors, alpha=0.7,
+                       edgecolors="k", linewidths=0.5, ax=ax2)
+nx.draw_networkx_labels(G_signed_viz, pos, labels=labels,
+                        font_size=7, font_weight="bold", ax=ax2)
+rivalry_legend = type_patches + [mpatches.Patch(color="red", alpha=0.5,
+                                                 label="Rivalry Edge")]
+ax2.legend(handles=rivalry_legend, loc="upper left", fontsize=8, ncol=2)
+ax2.set_title("Rivalry Network", fontsize=13, fontweight="bold")
+ax2.axis("off")
+
+plt.suptitle("BACRIM 2020: Signed Cartel Network (colored by organization type)",
+             fontsize=15, fontweight="bold", y=1.02)
 plt.tight_layout()
 plt.savefig("outputs/signed_network_by_type.png", dpi=200, bbox_inches="tight")
 plt.close()
@@ -471,40 +491,10 @@ print("\n=== Top 10 Predicted Future Alliances ===")
 print(top15.head(10)[["Name_A", "Type_A", "Name_B", "Type_B", "Jaccard"]]\
       .to_string(index=True))
 
-# Link prediction score distributions
-nonzero_jaccard = pred_df[pred_df["Jaccard"] > 0]["Jaccard"]
-nonzero_adamic = pred_df[pred_df["Adamic_Adar"] > 0]["Adamic_Adar"]
-
-fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-axes[0].hist(nonzero_jaccard, bins=30, color="steelblue", alpha=0.7,
-             edgecolor="black")
-axes[0].axvline(x=top15["Jaccard"].min(), color="red", linestyle="--",
-                linewidth=2, label=f"Top-15 threshold: {top15['Jaccard'].min():.3f}")
-axes[0].set_xlabel("Jaccard Coefficient"); axes[0].set_ylabel("Frequency")
-axes[0].set_title("Jaccard Score Distribution (non-zero)", fontweight="bold")
-axes[0].legend()
-axes[0].grid(True, alpha=0.3)
-
-axes[1].hist(nonzero_adamic, bins=30, color="darkorange", alpha=0.7,
-             edgecolor="black")
-axes[1].axvline(x=top15["Adamic_Adar"].min(), color="red", linestyle="--",
-                linewidth=2,
-                label=f"Top-15 threshold: {top15['Adamic_Adar'].min():.3f}")
-axes[1].set_xlabel("Adamic-Adar Index"); axes[1].set_ylabel("Frequency")
-axes[1].set_title("Adamic-Adar Score Distribution (non-zero)", fontweight="bold")
-axes[1].legend()
-axes[1].grid(True, alpha=0.3)
-
-plt.tight_layout()
-plt.savefig("outputs/link_prediction_distributions.png", dpi=200,
-            bbox_inches="tight")
-plt.close()
-
 # =============================================================================
-# 13. Dyadic logistic regression
+# 13. Dyadic logistic regression and unified link prediction comparison
 # =============================================================================
 
-# Rivalry subgraph (for SharedRivals feature)
 G_rivalry = nx.Graph()
 for u, v, d in G_signed.edges(data=True):
     if d.get("edge_type") == "rivalry":
@@ -514,59 +504,39 @@ for u, v, d in G_signed.edges(data=True):
 nodes_list = sorted(G_alliance_connected.nodes())
 all_pairs = [(u, v) for i, u in enumerate(nodes_list) for v in nodes_list[i+1:]]
 
-
 def compute_dyadic_features(u, v, G_all, G_riv, G_sign):
-    """Compute 6 dyadic features for a node pair."""
     nu = set(G_all.neighbors(u)) if G_all.has_node(u) else set()
     nv = set(G_all.neighbors(v)) if G_all.has_node(v) else set()
-    shared_allies = len(nu & nv)
-
     ru = set(G_riv.neighbors(u)) if G_riv.has_node(u) else set()
     rv = set(G_riv.neighbors(v)) if G_riv.has_node(v) else set()
-    shared_rivals = len(ru & rv)
-
-    su = node_specialty.get(u, "Undocumented")
-    sv = node_specialty.get(v, "Undocumented")
-    complementarity = int(su != sv and su != "Undocumented"
-                          and sv != "Undocumented")
-
-    same_state = int(node_state.get(u, "") == node_state.get(v, "")
-                     and node_state.get(u, "") != "")
-
+    su, sv = node_specialty.get(u, "Undocumented"), node_specialty.get(v, "Undocumented")
     balance = 0
     sn_u = set(G_sign.neighbors(u)) if G_sign.has_node(u) else set()
     sn_v = set(G_sign.neighbors(v)) if G_sign.has_node(v) else set()
     for w in sn_u & sn_v:
-        wt_uw = G_sign[u][w].get("weight", 0)
-        wt_vw = G_sign[v][w].get("weight", 0)
-        balance += 1 if wt_uw * wt_vw > 0 else -1
-
+        balance += 1 if G_sign[u][w].get("weight", 0) * G_sign[v][w].get("weight", 0) > 0 else -1
     du = G_all.degree(u) if G_all.has_node(u) else 0
     dv = G_all.degree(v) if G_all.has_node(v) else 0
-    deg_product = du * dv
-
-    return [shared_allies, shared_rivals, complementarity,
-            same_state, balance, deg_product]
-
+    return [len(nu & nv), len(ru & rv),
+            int(su != sv and su != "Undocumented" and sv != "Undocumented"),
+            int(node_state.get(u, "") == node_state.get(v, "") and node_state.get(u, "") != ""),
+            balance, du * dv]
 
 feature_names = ["SharedAllies", "SharedRivals", "Complementarity",
                  "SameState", "BalanceScore", "DegreeProduct"]
 
-X_rows = []
-y_labels = []
+X_rows, y_labels = [], []
 for u, v in all_pairs:
-    X_rows.append(compute_dyadic_features(u, v, G_alliance_connected,
-                                           G_rivalry, G_signed))
+    X_rows.append(compute_dyadic_features(u, v, G_alliance_connected, G_rivalry, G_signed))
     y_labels.append(1 if G_alliance_connected.has_edge(u, v) else 0)
-X = np.array(X_rows)
-y = np.array(y_labels)
-
+X, y = np.array(X_rows), np.array(y_labels)
 print(f"\nDyads: {len(y):,}  |  Positive: {y.sum()} ({100*y.mean():.1f}%)")
 
-# Fit full model for coefficient interpretation
-lr_full = LogisticRegression(class_weight='balanced', max_iter=1000,
-                              solver='lbfgs', random_state=42)
+# Fit both models
+lr_full = LogisticRegression(class_weight='balanced', max_iter=1000, solver='lbfgs', random_state=42)
 lr_full.fit(X, y)
+lr_topo_full = LogisticRegression(class_weight='balanced', max_iter=1000, solver='lbfgs', random_state=42)
+lr_topo_full.fit(X[:, [0, 5]], y)
 
 coef_df = pd.DataFrame({
     "Feature": feature_names,
@@ -576,6 +546,51 @@ coef_df = pd.DataFrame({
 coef_df.to_csv("outputs/logistic_coefficients.csv", index=False)
 print("\n=== Logistic Coefficients ===")
 print(coef_df.to_string(index=False))
+
+# Add logistic scores to pred_df
+pair_to_idx = {p: i for i, p in enumerate(all_pairs)}
+topo_probs = lr_topo_full.predict_proba(X[:, [0, 5]])[:, 1]
+full_probs = lr_full.predict_proba(X)[:, 1]
+
+def _get_prob(row, probs):
+    key = (min(row["Node_A"], row["Node_B"]), max(row["Node_A"], row["Node_B"]))
+    return round(probs[pair_to_idx[key]], 4) if key in pair_to_idx else 0
+
+pred_df["Logistic_Topo"] = pred_df.apply(lambda r: _get_prob(r, topo_probs), axis=1)
+pred_df["Logistic_Full"] = pred_df.apply(lambda r: _get_prob(r, full_probs), axis=1)
+
+# Unified top-5 table
+top5_all = []
+for model, col in [("Jaccard", "Jaccard"), ("Adamic-Adar", "Adamic_Adar"),
+                    ("Logistic (topo)", "Logistic_Topo"), ("Logistic (full)", "Logistic_Full")]:
+    t = pred_df.nlargest(5, col)[["Name_A", "Type_A", "Name_B", "Type_B", col]].copy()
+    t.columns = ["Org A", "Type A", "Org B", "Type B", "Score"]
+    t["Model"] = model
+    top5_all.append(t)
+    print(f"\n=== Top 5: {model} ===")
+    print(t[["Org A", "Org B", "Score"]].to_string(index=False))
+pd.concat(top5_all, ignore_index=True).to_csv("outputs/top5_all_models.csv", index=False)
+
+# 4-panel score distribution figure
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+for (scores, label, color, ax) in [
+    (pred_df[pred_df["Jaccard"] > 0]["Jaccard"], "Jaccard Coefficient", "steelblue", axes[0, 0]),
+    (pred_df[pred_df["Adamic_Adar"] > 0]["Adamic_Adar"], "Adamic-Adar Index", "darkorange", axes[0, 1]),
+    (pred_df["Logistic_Topo"], "Logistic (topology)", "mediumpurple", axes[1, 0]),
+    (pred_df["Logistic_Full"], "Logistic (full)", "seagreen", axes[1, 1]),
+]:
+    ax.hist(scores, bins=30, color=color, alpha=0.7, edgecolor="black")
+    thresh = scores.nlargest(5).min()
+    ax.axvline(x=thresh, color="red", linestyle="--", linewidth=2,
+               label=f"Top-5 threshold: {thresh:.3f}")
+    ax.set_xlabel(label); ax.set_ylabel("Frequency")
+    ax.set_title(f"{label} Distribution", fontweight="bold")
+    ax.legend(fontsize=8); ax.grid(True, alpha=0.3)
+plt.suptitle("Score Distributions Across All Link Prediction Models",
+             fontsize=14, fontweight="bold")
+plt.tight_layout()
+plt.savefig("outputs/link_prediction_distributions.png", dpi=200, bbox_inches="tight")
+plt.close()
 
 # =============================================================================
 # 14. Cross-validation: 4 models compared
